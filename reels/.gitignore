@@ -1,0 +1,11 @@
+# Рабочие/одноразовые файлы для конкретного ролика — по скиллу reels-montage
+# постоянными считаются только library/, context_assets/, stickers/, music/,
+# sfx/, fonts/, поэтому сырые исходники и рендеры в git не коммитим.
+input/*
+inserts/*
+done/*
+output/*
+!input/.gitkeep
+!inserts/.gitkeep
+!done/.gitkeep
+!output/.gitkeep
