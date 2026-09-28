@@ -13,7 +13,7 @@
 
 Разметка строк в "lines":
   "# текст"  — заголовок (капс)
-  "- текст"  — пункт списка с тире
+  "- текст"  — пункт списка с точкой
   "> текст"  — пункт со стрелкой
   "$ текст"  — строка цены (крупнее, цветом accent)
   "~ текст"  — мелкая строка
@@ -61,7 +61,7 @@ def cover(img, fx, fy):
 
 def parse(line):
     """-> (kind, prefix, text)"""
-    for mark, kind, prefix in (("# ", "title", ""), ("- ", "body", "—"),
+    for mark, kind, prefix in (("# ", "title", ""), ("- ", "body", "•"),
                                ("> ", "body", "→"), ("$ ", "price", ""),
                                ("~ ", "small", "")):
         if line.startswith(mark):
