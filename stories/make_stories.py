@@ -2,7 +2,7 @@
 """
 Собирает сторис 1080x1920 из фото и текстов (stories.json).
 
-Шрифт на всех слайдах один — Cormorant Garamond. Цвета задаются
+Шрифты на всех слайдах одни: заголовки Yeseva One, текст Lora. Цвета задаются
 индивидуально для каждого слайда в stories.json:
   text     — основной цвет текста
   accent   — цвет заголовка, **выделений** и цены
@@ -37,12 +37,41 @@ MARGIN_X = 84
 SAFE_TOP = 250      # верх под аватар/полоски Instagram
 SAFE_BOTTOM = 300   # низ под поле «Отправить сообщение»
 
-SIZES = {"title": 84, "body": 50, "price": 60, "small": 42}
+SIZES = {"title": 70, "body": 42, "price": 50, "small": 35}
 LEADING = 1.18
 
 
+FONTS = {
+    "Title": "YesevaOne-400.ttf",   # заголовки
+    "Medium": "Lora-500.ttf",       # основной текст
+    "Bold": "Lora-700.ttf",         # выделения и цены
+}
+
+
 def font(weight, size):
-    return ImageFont.truetype(str(FONT_DIR / f"CormorantGaramond-{weight}.ttf"), size)
+    return ImageFont.truetype(str(FONT_DIR / FONTS[weight]), size)
+
+
+ARROW = "→"
+ARROW_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # в Lora нет стрелки
+
+
+def arrow_font(f):
+    return ImageFont.truetype(ARROW_FONT, int(f.size * 0.85))
+
+
+def word_len(word, f):
+    return arrow_font(f).getlength(word) if word == ARROW else f.getlength(word)
+
+
+def draw_word(d, xy, word, f, fill):
+    if word == ARROW:
+        af = arrow_font(f)
+        # выравниваем стрелку по высоте строчных букв основного шрифта
+        dy = (f.getbbox("х")[1] + f.getbbox("х")[3]) / 2 - (af.getbbox(ARROW)[1] + af.getbbox(ARROW)[3]) / 2
+        d.text((xy[0], xy[1] + dy), word, font=af, fill=fill)
+    else:
+        d.text(xy, word, font=f, fill=fill)
 
 
 def rgb(h):
@@ -92,8 +121,8 @@ def layout(lines, scale):
             continue
         kind, prefix, text = parse(raw)
         size = int(SIZES[kind] * scale)
-        weight_n = {"title": "Bold", "price": "Bold"}.get(kind, "Medium")
-        weight_b = "Bold"
+        weight_n = {"title": "Title", "price": "Bold"}.get(kind, "Medium")
+        weight_b = "Title" if kind == "title" else "Bold"
         fn, fb = font(weight_n, size), font(weight_b, size)
         # заголовок: если самое длинное слово не влезает — уменьшаем кегль
         if kind == "title":
@@ -103,14 +132,14 @@ def layout(lines, scale):
                 fn, fb = font(weight_n, size), font(weight_b, size)
         indent = 0
         if prefix:
-            indent = int(fn.getlength(prefix + " "))
+            indent = int(word_len(prefix, fn) + fn.getlength(" "))
         toks = tokens(text, upper=(kind == "title"))
         cur, curw = [], 0
         space = fn.getlength(" ")
         first = True
         lines_out = []
         for word, hl in toks:
-            ww = (fb if hl else fn).getlength(word)
+            ww = word_len(word, fb if hl else fn)
             avail = maxw - indent
             add = ww if not cur else curw + space + ww
             if cur and add > avail:
@@ -184,11 +213,11 @@ def render(slide, out_path):
         x = MARGIN_X
         base_c = accent_c if r["kind"] in ("title", "price") else text_c
         if r["prefix"]:
-            d.text((x, y), r["prefix"], font=r["fn"], fill=accent_c)
+            draw_word(d, (x, y), r["prefix"], r["fn"], accent_c)
         x += r["indent"]
         for word, hl, ww in r["words"]:
-            d.text((x, y), word, font=r["fb"] if hl else r["fn"],
-                   fill=accent_c if hl else base_c)
+            draw_word(d, (x, y), word, r["fb"] if hl else r["fn"],
+                      accent_c if hl else base_c)
             x += ww + r["space"]
     img.save(out_path, "JPEG", quality=93)
 
