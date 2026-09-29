@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Натальная карта стиля</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700&display=block" rel="stylesheet">
+<style>
+/* =========================================================
+   Натальная карта стиля — мастер-шаблон
+   Страница сторис 1080×1920. На экране телефона книга
+   масштабируется под ширину экрана (390px и любую другую).
+   ========================================================= */
+:root {
+  --red: #B3201F;
+  --black: #151312;
+  --brown: #6E4B3A;
+  --brown-soft: #B59A84;
+  --sand: #E9DFD3;
+  --paper: #F7F2EB;
+  --white: #FFFFFF;
+  --line: rgba(21, 19, 18, .16);
+  --muted: #7A6D64;
+  --serif: 'Playfair Display', 'Times New Roman', serif;
+  --sans: 'Manrope', 'Helvetica Neue', Arial, sans-serif;
+  --pad-x: 96px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: #D9D2CA; -webkit-text-size-adjust: 100%; }
+body { font-family: var(--sans); color: var(--black); background: #D9D2CA; }
+img { display: block; }
+
+.book { width: 1080px; margin: 0 auto; transform-origin: top left; }
+.page {
+  position: relative; width: 1080px; height: 1920px; overflow: hidden;
+  background: var(--paper); display: flex; flex-direction: column;
+  padding: 104px var(--pad-x) 0; text-align: left;
+}
+.page.white { background: var(--white); }
+.page.dark { background: var(--black); color: var(--paper); }
+@media screen { .page + .page { margin-top: 36px; } .page { box-shadow: 0 10px 40px rgba(0,0,0,.12); } }
+@page { size: 1080px 1920px; margin: 0; }
+@media print { html, body { background: none; } .page { break-after: page; } }
+
+.content { position: relative; z-index: 1; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.foot {
+  position: relative; z-index: 1; height: 112px; flex: none;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 24px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+.dark .foot { color: rgba(247,242,235,.55); border-top-color: rgba(247,242,235,.18); }
+
+/* ---------- Типографика ---------- */
+.kicker {
+  display: flex; align-items: center; gap: 18px;
+  font-size: 26px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--brown);
+}
+.kicker b { color: var(--red); font-weight: 700; }
+.kicker::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.dark .kicker { color: var(--brown-soft); }
+.dark .kicker::after { background: rgba(247,242,235,.2); }
+h1 {
+  font-family: var(--serif); font-weight: 500; font-size: 104px; line-height: 1.02;
+  letter-spacing: -.01em; margin-top: 44px;
+}
+h1 em, h2 em { font-style: italic; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: 64px; line-height: 1.08; }
+h3 { font-family: var(--serif); font-weight: 500; font-size: 48px; line-height: 1.12; }
+.label {
+  font-size: 28px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--brown);
+}
+.dark .label { color: var(--brown-soft); }
+.text { font-size: 34px; line-height: 1.45; }
+.text-l { font-size: 40px; line-height: 1.4; }
+.muted { color: var(--muted); }
+.red { color: var(--red); }
+.rule { height: 1px; background: var(--line); margin: 48px 0; }
+.stack > * + * { margin-top: 40px; }
+.gap-s > * + * { margin-top: 16px; }
+.gap-m > * + * { margin-top: 28px; }
+
+/* ---------- Графика «натальной карты» ---------- */
+.orbit { position: absolute; z-index: 0; pointer-events: none; }
+.orbit circle { fill: none; stroke: var(--brown-soft); stroke-width: 1.5; }
+.orbit circle.dash { stroke-dasharray: 3 11; }
+.orbit circle.dot { fill: var(--brown); stroke: none; }
+.orbit circle.dot.r { fill: var(--red); }
+.dark .orbit circle { stroke: rgba(247,242,235,.22); }
+.dark .orbit circle.dot { fill: var(--brown-soft); }
+.dark .orbit circle.dot.r { fill: var(--red); }
+
+/* ---------- Фото ---------- */
+.ph { position: relative; overflow: hidden; background: var(--sand); }
+.ph img { width: 100%; height: 100%; object-fit: cover; }
+.collage { display: grid; gap: 10px; }
+.collage.n1 { grid-template-columns: 1fr; }
+.collage.n2 { grid-template-columns: 1fr 1fr; }
+.collage.n3 { grid-template-columns: 1.4fr 1fr; grid-template-rows: 1fr 1fr; }
+.collage.n3 > :first-child { grid-row: span 2; }
+.collage.n4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+/* ---------- Шкалы-ползунки ---------- */
+.scale { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.scale .ends { display: flex; justify-content: space-between; font-size: 28px; color: var(--muted); }
+.scale .ends span:first-child { text-align: left; }
+.scale .track { position: relative; height: 40px; }
+.scale .track::before { content: ''; position: absolute; left: 0; right: 0; top: 19px; height: 2px; background: var(--black); }
+.scale .track i { position: absolute; top: 19px; width: 2px; height: 14px; margin-top: -6px; background: var(--black); }
+.scale .mark {
+  position: absolute; top: 20px; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+  background: var(--red); box-shadow: 0 0 0 10px var(--paper), 0 0 0 12px var(--red);
+}
+.white .scale .mark { box-shadow: 0 0 0 10px var(--white), 0 0 0 12px var(--red); }
+.scale .title { font-size: 28px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--brown); }
+
+/* ---------- Свотчи ---------- */
+.swatches { display: flex; flex-wrap: wrap; gap: 26px 28px; }
+.sw { width: 124px; }
+.sw .c { width: 112px; height: 112px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+.sw .n { margin-top: 12px; font-size: 24px; line-height: 1.2; }
+.sw .h { font-size: 22px; color: var(--muted); letter-spacing: .04em; margin-top: 4px; }
+.dark .sw .h { color: rgba(247,242,235,.55); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 16px; }
+.chip { font-size: 30px; padding: 14px 28px; border: 1.5px solid var(--black); border-radius: 999px; line-height: 1; }
+.chip.r { border-color: var(--red); color: var(--red); }
+
+.list { list-style: none; }
+.list li { position: relative; padding-left: 40px; font-size: 34px; line-height: 1.4; }
+.list li + li { margin-top: 14px; }
+.list li::before { content: ''; position: absolute; left: 0; top: 19px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--red); }
+.dark .list li::before { border-color: var(--red); }
+
+.cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px 48px; }
+.cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; }
+
+/* ---------- Страницы ---------- */
+/* 0. Обложка */
+.cover { padding-top: 96px; }
+.cover .brand { font-size: 26px; letter-spacing: .24em; text-transform: uppercase; color: var(--brown); font-weight: 600; }
+.cover h1 { font-size: 150px; line-height: .95; margin-top: 40px; }
+.cover h1 em { color: var(--black); }
+.cover .portrait { position: relative; width: 700px; height: 700px; margin: 90px 0 0 90px; }
+.cover .portrait .ph { width: 700px; height: 700px; border-radius: 50%; }
+.cover .who { margin-top: auto; padding-bottom: 60px; }
+.cover .who .name { font-family: var(--serif); font-size: 84px; line-height: 1.05; }
+.cover .who .meta { margin-top: 26px; font-size: 32px; color: var(--muted); }
+
+/* 1. Запрос */
+.quote { position: relative; padding-left: 0; }
+.quote .q { font-family: var(--serif); font-size: 160px; line-height: .6; color: var(--red); height: 80px; }
+.quote p { font-family: var(--serif); font-style: italic; font-size: 54px; line-height: 1.3; margin-top: 20px; }
+.quote p.s { font-size: 44px; }
+.quote p.xs { font-size: 38px; }
+
+/* 2. Диаграмма занятости */
+.donut-wrap { display: flex; align-items: center; gap: 56px; margin-top: 44px; }
+.donut { width: 420px; height: 420px; flex: none; }
+.legend { flex: 1; }
+.legend .row { display: grid; grid-template-columns: 22px 1fr auto; gap: 18px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.legend .dot { width: 22px; height: 22px; border-radius: 50%; transform: translateY(2px); }
+.legend .nm { font-size: 30px; line-height: 1.25; }
+.legend .pc { font-family: var(--serif); font-size: 44px; }
+.events .ev { display: grid; grid-template-columns: 220px 1fr; gap: 24px; font-size: 34px; line-height: 1.35; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.events .ev .d { color: var(--brown); font-weight: 600; font-size: 30px; }
+.box { border: 1.5px solid var(--black); padding: 44px 48px; }
+.box.red { border-color: var(--red); }
+
+/* 3/7. фото-ряды */
+.refs { display: grid; gap: 14px; }
+
+/* 5. Фигура */
+.fig { display: grid; grid-template-columns: 340px 1fr; gap: 52px; margin-top: 48px; }
+.fig .ph { height: 1200px; border-radius: 190px 190px 0 0; }
+.fig .sil { font-family: var(--serif); font-size: 220px; line-height: .8; color: var(--red); }
+.kv { display: grid; grid-template-columns: 200px 1fr; gap: 12px 20px; font-size: 32px; line-height: 1.35; }
+.kv .k { color: var(--muted); }
+.tech { display: grid; grid-template-columns: 1fr 1fr; gap: 36px 40px; }
+.tech .t { display: grid; grid-template-columns: 150px 1fr; gap: 22px; align-items: start; }
+.tech .t.noimg { grid-template-columns: 1fr; }
+.tech .ph { width: 150px; height: 190px; }
+.tech h4 { font-family: var(--serif); font-weight: 500; font-size: 44px; line-height: 1.1; }
+.tech p { font-size: 30px; line-height: 1.4; margin-top: 10px; color: var(--muted); }
+
+/* 6. Внутренний код */
+.arch { display: grid; grid-template-columns: 1fr; gap: 24px; }
+.arch .nm { font-family: var(--serif); font-size: 96px; line-height: 1; }
+.arch .nm.s { font-size: 64px; }
+.psy { display: grid; grid-template-columns: 200px 1fr; gap: 26px 28px; font-size: 32px; line-height: 1.4; }
+.psy .k { font-weight: 700; font-size: 26px; letter-spacing: .12em; text-transform: uppercase; color: var(--brown); padding-top: 4px; }
+
+/* 7. Стиль */
+.adj { font-family: var(--serif); font-size: 92px; line-height: 1.02; }
+.adj span { display: block; }
+.adj span:nth-child(2n) { font-style: italic; padding-left: 90px; }
+.mood { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 330px; gap: 12px; }
+.mood.n4 { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 300px; }
+.mood.n5 > :first-child { grid-row: span 2; }
+
+/* 8. Формула гардероба */
+.bar { display: flex; height: 96px; }
+.bar div { display: flex; align-items: center; padding: 0 28px; font-size: 34px; font-weight: 600; color: var(--paper); }
+.bar .b { background: var(--black); }
+.bar .a { background: var(--red); }
+.big-rule { font-family: var(--serif); font-size: 76px; line-height: 1.05; }
+.capsule { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 230px; gap: 10px; }
+
+/* 9. Образы */
+.looks { display: grid; grid-template-columns: 1fr 1fr; gap: 44px 36px; margin-top: 48px; flex: 1; min-height: 0; grid-auto-rows: 1fr; }
+.look { display: flex; flex-direction: column; min-height: 0; }
+.look .collage { flex: 1; min-height: 0; }
+.look .tag { margin-top: 20px; font-size: 24px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--red); }
+.look h4 { font-family: var(--serif); font-weight: 500; font-size: 40px; line-height: 1.1; margin-top: 8px; }
+.look p { font-size: 28px; line-height: 1.35; margin-top: 8px; color: var(--muted); }
+.looks.one { grid-template-columns: 1fr; }
+.looks.n3 { grid-template-columns: 1fr; }
+.looks.n3 .look { flex-direction: row; gap: 36px; }
+.looks.n3 .look .collage { flex: none; width: 500px; }
+.looks.n3 .look .txt { flex: 1; padding-top: 10px; }
+.looks.n3 .look .tag { margin-top: 0; }
+
+/* 11. Не твоё */
+.swap { display: grid; grid-template-columns: 1fr 70px 1fr; gap: 20px; align-items: start; padding: 34px 0; border-bottom: 1px solid var(--line); }
+.swap .x { font-size: 34px; line-height: 1.35; color: var(--muted); }
+.swap .x small, .swap .y small { display: block; font-size: 24px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 8px; font-weight: 600; }
+.swap .y small { color: var(--red); }
+.swap .y { font-size: 34px; line-height: 1.35; }
+.swap .arr { font-size: 52px; color: var(--red); line-height: 1; padding-top: 30px; }
+
+/* 13. Шопинг */
+.check li { list-style: none; position: relative; padding-left: 60px; font-size: 34px; line-height: 1.4; }
+.check li + li { margin-top: 16px; }
+.check li::before { content: ''; position: absolute; left: 0; top: 8px; width: 32px; height: 32px; border: 2px solid var(--black); }
+.prio { display: grid; grid-template-columns: 1fr; gap: 0; }
+.prio .p { display: grid; grid-template-columns: 240px 1fr; gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+.prio .p .k { font-size: 28px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--brown); padding-top: 4px; }
+.prio .p:first-child .k { color: var(--red); }
+
+/* 14. Шпаргалка */
+.cheat h1 { font-size: 88px; }
+.rules { counter-reset: r; }
+.rules li { list-style: none; counter-increment: r; display: grid; grid-template-columns: 70px 1fr; font-size: 36px; line-height: 1.35; padding: 18px 0; border-bottom: 1px solid rgba(247,242,235,.16); }
+.rules li::before { content: counter(r); font-family: var(--serif); font-size: 44px; color: var(--red); line-height: 1; }
+.fml { display: grid; grid-template-columns: 1fr; }
+.fml div { font-size: 32px; line-height: 1.35; padding: 16px 0; border-bottom: 1px solid rgba(247,242,235,.16); }
+.fml b { color: var(--brown-soft); font-weight: 600; font-size: 24px; letter-spacing: .14em; text-transform: uppercase; display: block; margin-bottom: 4px; }
+
+/* 15. Финал */
+.contacts .row { display: grid; grid-template-columns: 260px 1fr; gap: 24px; font-size: 36px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.contacts .row .k { color: var(--muted); font-size: 30px; padding-top: 4px; }
+
+/* Сообщение без данных */
+.empty { font-family: var(--sans); max-width: 520px; margin: 60px auto; padding: 24px; font-size: 16px; line-height: 1.5; background: #fff; }
+.empty code { background: #f1ece6; padding: 1px 5px; }
+</style>
+</head>
+<body>
+<div class="book" id="book"></div>
+
+<script>
+// Данные подставляет export.js. Можно также открыть через веб-сервер: template.html?client=clients/Имя/client.json
+window.__DATA__ = /*__DATA__*/null;
+</script>
+<script>
+(function () {
+'use strict';
+
+// ---------------- помощники ----------------
+const E = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const T = (s) => E(String(s ?? '').trim()).replace(/\n+/g, '<br>');
+const has = (v) => {
+  if (v == null) return false;
+  if (Array.isArray(v)) return v.some(has);
+  if (typeof v === 'object') return Object.values(v).some(has);
+  if (typeof v === 'number') return Number.isFinite(v);
+  return String(v).trim() !== '';
+};
+const arr = (v) => (Array.isArray(v) ? v : v ? [v] : []).filter(has);
+const pct = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : null; };
+const hex = (h) => { const s = String(h || '').trim(); return /^#?[0-9a-f]{3,8}$/i.test(s) ? (s[0] === '#' ? s : '#' + s) : null; };
+
+let PHOTOS = {};
+let PHOTO_BASE = '';
+const src = (name) => {
+  const n = String(name || '').trim();
+  if (!n) return null;
+  if (PHOTOS[n]) return PHOTOS[n];
+  if (PHOTO_BASE) return PHOTO_BASE + encodeURIComponent(n);
+  return null;
+};
+const photos = (list) => arr(list).map(src).filter(Boolean);
+const ph = (s, style = '', cls = '') => s ? `<div class="ph ${cls}" style="${style}"><img src="${s}" alt=""></div>` : '';
+const collage = (list, style = '') => {
+  const p = list.slice(0, 4);
+  if (!p.length) return '';
+  return `<div class="collage n${p.length}" style="${style}">${p.map((s) => ph(s)).join('')}</div>`;
+};
+
+// Орбиты: концентрические круги + точки-«планеты»
+function orbit({ size, x, y, rings = [1, .72, .46], dots = [], dashed = [1] }) {
+  const c = size / 2;
+  let g = '';
+  rings.forEach((r, i) => { g += `<circle class="${dashed.includes(i) ? 'dash' : ''}" cx="${c}" cy="${c}" r="${(r * c - 2).toFixed(1)}"/>`; });
+  dots.forEach(([ring, deg, rad, red]) => {
+    const R = rings[ring] * c - 2, a = (deg - 90) * Math.PI / 180;
+    g += `<circle class="dot ${red ? 'r' : ''}" cx="${(c + R * Math.cos(a)).toFixed(1)}" cy="${(c + R * Math.sin(a)).toFixed(1)}" r="${rad}"/>`;
+  });
+  return `<svg class="orbit" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="left:${x}px;top:${y}px">${g}</svg>`;
+}
+
+function scale(title, left, right, value) {
+  const v = pct(value);
+  if (v == null) return '';
+  return `<div class="scale">
+    ${title ? `<div class="title">${E(title)}</div>` : ''}
+    <div class="track"><i style="left:0"></i><i style="left:50%"></i><i style="right:0"></i><span class="mark" style="left:${v}%"></span></div>
+    <div class="ends"><span>${E(left)}</span><span>${E(right)}</span></div>
+  </div>`;
+}
+
+function swatches(list) {
+  const items = arr(list).map((s) => typeof s === 'string' ? { hex: s } : s).filter((s) => hex(s.hex));
+  if (!items.length) return '';
+  return `<div class="swatches">${items.map((s) => `<div class="sw"><div class="c" style="background:${hex(s.hex)}"></div>${s.name ? `<div class="n">${E(s.name)}</div>` : ''}<div class="h">${E(hex(s.hex).toUpperCase())}</div></div>`).join('')}</div>`;
+}
+
+const ul = (list, cls = 'list') => { const l = arr(list); return l.length ? `<ul class="${cls}">${l.map((x) => `<li>${T(x)}</li>`).join('')}</ul>` : ''; };
+const block = (label, html) => html ? `<div class="gap-s"><div class="label">${E(label)}</div>${html}</div>` : '';
+const para = (s, cls = 'text') => has(s) ? `<p class="${cls}">${T(s)}</p>` : '';
+const quoteSize = (s) => { const l = String(s || '').length; return l > 260 ? 'xs' : l > 150 ? 's' : ''; };
+
+// ---------------- страницы ----------------
+// Каждая функция возвращает { html, cls } или null, если данных нет — тогда страница пропускается.
+const PAGES = [];
+const page = (n, fn) => { PAGES[n] = fn; };
+
+page(0, (S, A, D) => {
+  const m = S.meta || {};
+  const name = m.client_name || D.name.full;
+  if (!name && !src(m.cover_photo)) return null;
+  const meta = [m.date, m.stylist_name && `стилист ${m.stylist_name}`].filter(has).map(E).join(' · ');
+  const photo = src(m.cover_photo);
+  return {
+    cls: 'cover', nofoot: true,
+    html: `
+      <div class="brand">Персональный стайлбук</div>
+      <h1>Натальная<br>карта <em>стиля</em></h1>
+      <div class="portrait">${orbit({ size: 1100, x: -200, y: -200, rings: [1, .84, .7], dashed: [0, 2], dots: [[0, 215, 12, true], [1, 62, 8], [2, 300, 6], [0, 128, 6]] })}${photo ? ph(photo, 'position:relative') : ''}</div>
+      <div class="who"><div class="name">${E(name)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>`,
+  };
+});
+
+page(1, (S, A) => {
+  const r = S.request || {};
+  const goal = r.goal || A.q3;
+  const success = r.success || A.q5;
+  const plans = r.plans || A.q6;
+  if (!has(goal) && !has(success)) return null;
+  return {
+    html: `
+      ${orbit({ size: 620, x: 620, y: -160, dots: [[0, 200, 10, true], [2, 80, 6]] })}
+      <div class="kicker"><b>01</b> Запрос</div>
+      <h1>С чем ты<br><em>пришла</em></h1>
+      <div class="stack" style="margin-top:72px">
+        ${has(goal) ? `<div class="quote"><div class="q">“</div><p class="${quoteSize(goal)}">${T(goal)}</p></div>` : ''}
+        ${has(success) ? `<div class="rule" style="margin:24px 0 0"></div><div class="gap-m"><div class="label">Как поймём, что результат достигнут</div><div class="quote"><p class="${quoteSize(success)} s">${T(success)}</p></div></div>` : ''}
+        ${has(plans) ? `<div class="gap-s"><div class="label">Что меняется в жизни</div><p class="text">${T(plans)}</p></div>` : ''}
+      </div>`,
+  };
+});
+
+const DONUT = ['#151312', '#6E4B3A', '#B59A84', '#4A403A', '#D8C8B7', '#8E6E5A', '#2E2825', '#E9DFD3'];
+page(2, (S, A) => {
+  const L = S.lifestyle || {};
+  const sph = arr(L.spheres).map((s) => ({ name: String(s.name || '').trim(), hours: parseFloat(String(s.hours).replace(',', '.')) }))
+    .filter((s) => s.name && s.hours > 0);
+  const events = arr(L.events).filter((e) => has(e.title));
+  const eventsText = !events.length && has(A.q10) ? A.q10 : '';
+  if (!sph.length && !events.length && !has(L.wardrobe_for)) return null;
+  let donut = '';
+  if (sph.length) {
+    const total = sph.reduce((a, s) => a + s.hours, 0);
+    const maxI = sph.reduce((m, s, i) => s.hours > sph[m].hours ? i : m, 0);
+    const R = 170, C = 2 * Math.PI * R;
+    let off = 0;
+    const rows = sph.map((s, i) => {
+      const p = s.hours / total;
+      const col = i === maxI ? 'var(--red)' : DONUT[(i >= maxI ? i - 1 : i) % DONUT.length];
+      const seg = `<circle cx="220" cy="220" r="${R}" fill="none" stroke="${col}" stroke-width="84" stroke-dasharray="${(p * C - 3).toFixed(1)} ${C}" stroke-dashoffset="${(-off * C).toFixed(1)}" transform="rotate(-90 220 220)"/>`;
+      off += p;
+      return { seg, col, s, p: Math.round(p * 100) };
+    });
+    // проценты округляем так, чтобы сумма была ровно 100
+    const diff = 100 - rows.reduce((a, r) => a + r.p, 0);
+    rows[maxI].p += diff;
+    donut = `<div class="donut-wrap">
+      <svg class="donut" viewBox="0 0 440 440">${rows.map((r) => r.seg).join('')}
+        <text x="220" y="212" text-anchor="middle" font-family="Playfair Display, serif" font-size="64">${Math.round(total)}</text>
+        <text x="220" y="256" text-anchor="middle" font-family="Manrope, sans-serif" font-size="24" fill="#7A6D64" letter-spacing="2">ЧАСОВ В НЕДЕЛЮ</text></svg>
+      <div class="legend">${rows.map((r) => `<div class="row"><span class="dot" style="background:${r.col}"></span><span class="nm">${E(r.s.name)}</span><span class="pc">${r.p}%</span></div>`).join('')}</div>
+    </div>`;
+  }
+  return {
+    html: `
+      <div class="kicker"><b>02</b> Образ жизни</div>
+      <h1>На что уходит<br><em>твоя неделя</em></h1>
+      ${donut}
+      <div class="stack" style="margin-top:48px">
+        ${events.length ? block('Ближайшие события', `<div class="events">${events.map((e) => `<div class="ev"><span class="d">${E(e.date)}</span><span>${E(e.title)}</span></div>`).join('')}</div>`) : ''}
+        ${eventsText ? block('Ближайшие события', para(eventsText)) : ''}
+        ${has(L.wardrobe_for) ? `<div class="box red gap-s"><div class="label red">Под что собираем гардероб</div><p class="text-l">${T(L.wardrobe_for)}</p></div>` : ''}
+      </div>`,
+  };
+});
+
+page(3, (S) => {
+  const t = S.typage || {};
+  if (!has(t.name) && !has(t.keywords) && !has(t.lines)) return null;
+  const refs = photos(t.photos).slice(0, 3);
+  return {
+    html: `
+      ${orbit({ size: 700, x: 560, y: -220, dots: [[0, 230, 12, true], [1, 140, 7]] })}
+      <div class="kicker"><b>03</b> Ядро · типаж</div>
+      <h1>${has(t.name) ? T(t.name) : 'Твой типаж'}</h1>
+      <div class="stack" style="margin-top:60px">
+        ${scale('', 'Инь · мягкость', 'Ян · графичность', t.yin_yang)}
+        ${arr(t.keywords).length ? `<div class="chips">${arr(t.keywords).map((k, i) => `<span class="chip ${i === 0 ? 'r' : ''}">${E(k)}</span>`).join('')}</div>` : ''}
+        ${block('Линии и силуэты, которые работают', ul(t.lines))}
+        ${refs.length ? `<div class="refs" style="grid-template-columns:repeat(${refs.length},1fr)">${refs.map((s) => ph(s, `height:${refs.length === 1 ? 640 : 560}px`)).join('')}</div>` : ''}
+      </div>`,
+  };
+});
+
+page(4, (S) => {
+  const c = S.color || {};
+  const hasSw = [c.face, c.base, c.accents].some((l) => arr(l).some((s) => hex(typeof s === 'string' ? s : s.hex)));
+  const metal = String(c.metal || '').trim();
+  const schemes = arr(c.schemes).filter((s) => has(s.type) || arr(s.colors).length).slice(0, 3);
+  const scales = [c.temperature, c.contrast, c.chroma].some((v) => pct(v) != null);
+  const out = [];
+  // 4а — шкалы и палитра
+  if (hasSw || scales) {
+    const face = src(c.face_photo);
+    out.push({
+      cls: 'white',
+      html: `
+      <div class="kicker"><b>04</b> Цвет</div>
+      <div style="display:flex;gap:40px;align-items:flex-end;margin-top:44px">
+        <h1 style="margin:0;flex:1">${has(c.type_name) ? T(c.type_name) : 'Твоя<br><em>палитра</em>'}</h1>
+        ${face ? ph(face, 'width:250px;height:250px;border-radius:50%;flex:none') : ''}
+      </div>
+      ${scales ? `<div class="gap-m" style="margin-top:48px">
+        ${scale('Температура', 'холодный', 'тёплый', c.temperature)}
+        ${scale('Контраст', 'низкий', 'высокий', c.contrast)}
+        ${scale('Чистота', 'приглушённый', 'чистый', c.chroma)}
+      </div>` : ''}
+      <div class="gap-m" style="margin-top:36px">
+        ${block('Цвета у лица', swatches(c.face))}
+        ${block('База', swatches(c.base))}
+        ${block('Акценты', swatches(c.accents))}
+      </div>`,
+    });
+  }
+  // 4б — металл и схемы сочетаний
+  if (metal || schemes.length) {
+    out.push({
+      cls: 'white',
+      html: `
+      ${orbit({ size: 600, x: 600, y: -180, dots: [[0, 215, 10, true], [1, 120, 6]] })}
+      <div class="kicker"><b>04</b> Цвет · сочетания</div>
+      <h1>Как соединять<br><em>цвета</em></h1>
+      ${metal ? `<div class="gap-s" style="margin-top:56px"><div class="label">Металл</div><p class="text-l">${E(metal)}</p></div>` : ''}
+      ${schemes.length ? `<div style="margin-top:56px">${schemes.map((sc) => {
+        const p = src(sc.photo);
+        const cols = arr(sc.colors).map(hex).filter(Boolean);
+        return `<div style="display:grid;grid-template-columns:${p ? '300px ' : ''}1fr;gap:40px;padding:36px 0;border-top:1px solid var(--line)">
+          ${p ? ph(p, 'height:300px') : ''}
+          <div class="gap-m"><div style="display:flex">${cols.map((h, i) => `<span style="width:96px;height:96px;border-radius:50%;background:${h};margin-left:${i ? -24 : 0}px;box-shadow:0 0 0 4px #fff"></span>`).join('')}</div>
+            <h3>${E(sc.type)}</h3>${has(sc.text) ? `<p class="text muted" style="margin-top:8px">${T(sc.text)}</p>` : ''}</div>
+        </div>`;
+      }).join('')}</div>` : ''}`,
+    });
+  }
+  return out.length ? out : null;
+});
+
+const SIL = { X: 'песочные часы', A: 'груша', H: 'прямоугольник', Y: 'перевёрнутый треугольник', O: 'яблоко' };
+page(5, (S, A, D) => {
+  const f = S.figure || {};
+  const sil = String(f.silhouette || (D.figureHint && D.figureHint.type) || '').trim();
+  const lm = sil.match(/^([XAHYOХАНУО])(?![A-Za-zА-Яа-яЁё])/i);
+  const letter = lm ? ({ 'Х': 'X', 'А': 'A', 'Н': 'H', 'У': 'Y', 'О': 'O' }[lm[1].toUpperCase()] || lm[1].toUpperCase()) : '';
+  const silName = letter && SIL[letter] ? (sil.replace(/^[^\s—–-]+\s*[—–-]?\s*/, '') || SIL[letter]) : sil;
+  const L = f.lengths || {};
+  const lengths = [['Юбка', L.skirt], ['Брюки', L.trousers], ['Пальто', L.coat], ['Рукав', L.sleeve]].filter(([, v]) => has(v));
+  const tech = arr(f.techniques).filter((t) => has(t.title) || has(t.text)).slice(0, 4);
+  if (!sil && !has(f.accent) && !lengths.length && !tech.length) return null;
+  const photo = src(f.photo);
+  const params = [['Рост', f.height], ['Комплекция', f.build]].filter(([, v]) => has(v));
+  const out = [];
+  if (sil || has(f.accent) || lengths.length || has(f.open_closed)) {
+    out.push({
+      html: `
+      <div class="kicker"><b>05</b> Фигура</div>
+      <div class="fig" style="${photo ? '' : 'grid-template-columns:1fr'}">
+        ${photo ? ph(photo, 'height:1200px') : ''}
+        <div class="stack">
+          ${sil ? `<div>${letter ? `<div class="sil">${letter}</div>` : ''}<h2 style="margin-top:${letter ? 20 : 0}px">${E(silName)}</h2></div>` : ''}
+          ${params.length ? `<div class="kv">${params.map(([k, v]) => `<span class="k">${k}</span><span>${E(v)}</span>`).join('')}</div>` : ''}
+          ${has(f.accent) ? block('Главная точка акцента', para(f.accent)) : ''}
+          ${lengths.length ? block('Удачные длины', `<div class="kv">${lengths.map(([k, v]) => `<span class="k">${k}</span><span>${E(v)}</span>`).join('')}</div>`) : ''}
+          ${has(f.open_closed) ? block('Открыто / закрыто', para(f.open_closed)) : ''}
+        </div>
+      </div>`,
+    });
+  }
+  if (tech.length) {
+    out.push({
+      html: `
+      <div class="kicker"><b>05</b> Фигура · приёмы</div>
+      <h1>Приёмы,<br><em>которые работают</em></h1>
+      <div class="tech" style="margin-top:64px">${tech.map((t) => {
+        const p = src(t.photo);
+        return `<div class="gap-m">${p ? ph(p, 'height:440px') : ''}<div><h4>${E(t.title)}</h4>${has(t.text) ? `<p>${T(t.text)}</p>` : ''}</div></div>`;
+      }).join('')}</div>`,
+    });
+  }
+  return out.length ? out : null;
+});
+
+page(6, (S) => {
+  const c = S.inner_code || {};
+  const m = c.archetype_main || {}, s = c.archetype_second || {}, p = c.psychotype || {};
+  if (!has(m.name) && !has(s.name) && !has(p)) return null;
+  const rows = [['Ценит', p.values], ['Избегает', p.avoids], ['Комфортно', p.comfort]].filter(([, v]) => has(v));
+  return {
+    html: `
+      ${orbit({ size: 900, x: 420, y: 120, rings: [1, .62, .3], dashed: [0], dots: [[0, 250, 14, true], [1, 40, 10], [2, 170, 7]] })}
+      <div class="kicker"><b>06</b> Внутренний код</div>
+      <h1>Что транслирует<br><em>твой образ</em></h1>
+      <div class="stack" style="margin-top:64px">
+        ${has(m.name) ? `<div class="arch"><div class="label red">Ведущий архетип</div><div class="nm">${E(m.name)}</div>${para(m.text)}</div>` : ''}
+        ${has(s.name) ? `<div class="arch"><div class="label">Вторичный архетип</div><div class="nm s">${E(s.name)}</div>${para(s.text)}</div>` : ''}
+        ${has(p) ? `<div class="rule" style="margin:8px 0 0"></div>
+          <div class="gap-m"><div class="label">Психотип гардероба</div>${has(p.name) ? `<h3>${E(p.name)}</h3>` : ''}
+          ${rows.length ? `<div class="psy">${rows.map(([k, v]) => `<span class="k">${k}</span><span>${T(v)}</span>`).join('')}</div>` : ''}</div>` : ''}
+      </div>`,
+  };
+});
+
+page(7, (S) => {
+  const s = S.style || {};
+  const adj = arr(s.adjectives).slice(0, 5);
+  const mood = photos(s.moodboard).slice(0, 6);
+  if (!has(s.main) && !has(s.formula) && !adj.length && !mood.length) return null;
+  const formula = s.formula || [s.main, s.accent].filter(has).join(' + ');
+  const cls = mood.length === 4 ? 'n4' : mood.length === 5 ? 'n5' : '';
+  return {
+    html: `
+      <div class="kicker"><b>07</b> Стиль</div>
+      <h1>${formula ? T(formula).replace(/\+/g, '<em class="red">+</em>') : 'Твой стиль'}</h1>
+      ${has(s.main) || has(s.accent) ? `<div class="kv" style="margin-top:36px;grid-template-columns:240px 1fr">${has(s.main) ? `<span class="k">Основной</span><span>${E(s.main)}</span>` : ''}${has(s.accent) ? `<span class="k">Акцент</span><span>${E(s.accent)}</span>` : ''}</div>` : ''}
+      ${adj.length ? `<div class="adj" style="margin-top:56px">${adj.map((a) => `<span>${E(a)}</span>`).join('')}</div>` : ''}
+      ${mood.length ? `<div class="mood ${cls}" style="margin-top:56px">${mood.map((m) => ph(m)).join('')}</div>` : ''}`,
+  };
+});
+
+page(8, (S) => {
+  const w = S.wardrobe || {};
+  const b = pct(w.base_pct), a = pct(w.accent_pct) ?? (b != null ? 100 - b : null);
+  const cap = w.capsule || {};
+  const capPhotos = photos(cap.photos).slice(0, 6);
+  const trio = [['Обувь', w.shoes], ['Верхняя одежда', w.outerwear], ['Сумки', w.bags]].filter(([, v]) => arr(v).length);
+  if (b == null && !has(w.rule) && !trio.length && !capPhotos.length && !arr(cap.items).length) return null;
+  return {
+    html: `
+      <div class="kicker"><b>08</b> Формула гардероба</div>
+      <h1>Как устроен<br><em>твой шкаф</em></h1>
+      <div class="stack" style="margin-top:56px">
+        ${b != null ? `<div class="gap-s"><div class="bar"><div class="b" style="flex:${b}">База ${b}%</div><div class="a" style="flex:${a}">${a}%</div></div><div style="display:flex;justify-content:space-between;font-size:28px;color:var(--muted)"><span>база</span><span>акценты</span></div></div>` : ''}
+        ${has(w.rule) ? `<div class="big-rule">${T(w.rule)}</div>` : ''}
+        ${trio.length ? `<div class="cols3">${trio.map(([k, v]) => `<div class="gap-s"><div class="label">${k}</div>${ul(v)}</div>`).join('')}</div>` : ''}
+        ${capPhotos.length || arr(cap.items).length ? `<div class="gap-m"><div class="label red">${E(cap.title || 'Капсула на сезон')}</div>
+          ${capPhotos.length ? `<div class="capsule" style="grid-template-columns:repeat(${Math.min(3, capPhotos.length)},1fr)">${capPhotos.map((p) => ph(p)).join('')}</div>` : ''}
+          ${arr(cap.items).length ? `<p class="text muted">${arr(cap.items).map(E).join(' · ')}</p>` : ''}</div>` : ''}
+      </div>`,
+  };
+});
+
+// 9 — образы, по 4 на страницу
+page(9, (S) => {
+  const looks = arr(S.looks).filter((l) => has(l.title) || photos(l.photos).length).slice(0, 8);
+  if (!looks.length) return null;
+  const chunks = [];
+  // больше 4 образов — делим поровну на две страницы (5 → 3+2, 6 → 3+3, 8 → 4+4)
+  const per = looks.length > 4 ? Math.ceil(looks.length / 2) : 4;
+  for (let i = 0; i < looks.length; i += per) chunks.push(looks.slice(i, i + per));
+  return chunks.map((ch, k) => ({
+    html: `
+      <div class="kicker"><b>09</b> Формулы образов${chunks.length > 1 ? ` · ${k + 1}/${chunks.length}` : ''}</div>
+      <h1 style="font-size:88px">${k === 0 ? 'Готовые<br><em>формулы</em>' : 'Ещё<br><em>формулы</em>'}</h1>
+      <div class="looks ${ch.length === 1 ? 'one' : ''} n${ch.length}">${ch.map((l) => `<div class="look">
+        ${collage(photos(l.photos))}
+        <div class="txt">${has(l.sphere) ? `<div class="tag">${E(l.sphere)}</div>` : ''}
+        ${has(l.title) ? `<h4>${E(l.title)}</h4>` : ''}
+        ${has(l.why) ? `<p>${T(l.why)}</p>` : ''}</div>
+      </div>`).join('')}</div>`,
+  }));
+});
+
+page(10, (S) => {
+  const d = S.details || {};
+  const rows = [['Аксессуары', d.accessories], ['Украшения', d.jewelry], ['Принты', d.prints], ['Фактуры', d.textures]].filter(([, v]) => has(v));
+  if (!rows.length) return null;
+  const ps = photos(d.photos).slice(0, 3);
+  return {
+    html: `
+      ${orbit({ size: 560, x: 640, y: -120, dots: [[0, 200, 10, true]] })}
+      <div class="kicker"><b>10</b> Детали</div>
+      <h1>Мелочи, которые<br><em>решают</em></h1>
+      <div class="stack" style="margin-top:64px">
+        ${rows.map(([k, v]) => block(k, Array.isArray(v) ? ul(v) : para(v))).join('')}
+        ${ps.length ? `<div class="refs" style="grid-template-columns:repeat(${ps.length},1fr)">${ps.map((p) => ph(p, 'height:420px')).join('')}</div>` : ''}
+      </div>`,
+  };
+});
+
+page(11, (S) => {
+  const list = arr(S.not_yours).filter((x) => has(x.instead) || has(x.try)).slice(0, 7);
+  if (!list.length) return null;
+  return {
+    html: `
+      <div class="kicker"><b>11</b> Не твоё</div>
+      <h1>Вместо этого —<br><em>попробуй</em></h1>
+      <div style="margin-top:56px">${list.map((x) => `<div class="swap">
+        <div class="x"><small>вместо</small>${T(x.instead)}</div><div class="arr">→</div><div class="y"><small>попробуй</small>${T(x.try)}</div>
+      </div>`).join('')}</div>`,
+  };
+});
+
+page(12, (S) => {
+  const h = S.hair_makeup || {};
+  const rows = [['Стрижка', h.haircut], ['Цвет волос', h.hair_color], ['Акцент в макияже', h.makeup]].filter(([, v]) => has(v));
+  if (!rows.length) return null;
+  const p = src(h.photo);
+  return {
+    html: `
+      <div class="kicker"><b>12</b> Волосы и макияж</div>
+      <h1>Рамка<br><em>для лица</em></h1>
+      ${p ? ph(p, 'height:720px;margin-top:56px;border-radius:360px 360px 0 0;width:620px') : ''}
+      <div class="stack" style="margin-top:56px">${rows.map(([k, v]) => block(k, para(v))).join('')}</div>`,
+  };
+});
+
+page(13, (S) => {
+  const s = S.shopping || {};
+  const prio = [['Сначала', s.first], ['Потом', s.later], ['По желанию', s.optional]].filter(([, v]) => arr(v).length);
+  if (!arr(s.checklist).length && !prio.length) return null;
+  return {
+    html: `
+      <div class="kicker"><b>13</b> Шопинг</div>
+      <h1>Покупать<br><em>с умом</em></h1>
+      <div class="stack" style="margin-top:56px">
+        ${arr(s.checklist).length ? block('Чек-лист в примерочной', ul(s.checklist, 'check')) : ''}
+        ${prio.length ? `<div class="gap-s"><div class="label">Список покупок${has(s.budget) ? ` · бюджет ${E(s.budget)}` : ''}</div><div class="prio">${prio.map(([k, v]) => `<div class="p"><span class="k">${k}</span><div class="text">${arr(v).map(E).join('<br>')}</div></div>`).join('')}</div></div>` : ''}
+        ${arr(s.where).length ? block('Где покупать', `<div class="chips">${arr(s.where).map((w) => `<span class="chip">${E(w)}</span>`).join('')}</div>`) : ''}
+      </div>`,
+  };
+});
+
+// 14 — шпаргалка. Если поля не заполнены вручную, собирается из выводов.
+page(14, (S, A, D) => {
+  const ch = S.cheatsheet || {};
+  let rules = arr(ch.rules);
+  if (!rules.length) {
+    const f = S.figure || {}, c = S.color || {}, w = S.wardrobe || {}, st = S.style || {};
+    const sil = f.silhouette || (D.figureHint && D.figureHint.type);
+    rules = [
+      has(st.formula) && `Стиль: ${st.formula}`,
+      has(f.accent) && `Акцент: ${f.accent}`,
+      has(c.metal) && `Металл: ${c.metal}`,
+      has(w.rule) && w.rule,
+      has(f.open_closed) && f.open_closed,
+      has(sil) && `Силуэт: ${sil}`,
+      arr(S.not_yours)[0] && `Вместо «${arr(S.not_yours)[0].instead}» — ${arr(S.not_yours)[0].try}`,
+    ].filter(Boolean);
+  }
+  rules = rules.slice(0, 5);
+  let sw = arr(ch.swatches);
+  if (!sw.length) {
+    const c = S.color || {};
+    sw = [...arr(c.face), ...arr(c.accents), ...arr(c.base)].filter((s) => hex(typeof s === 'string' ? s : s.hex));
+  }
+  sw = sw.slice(0, 6);
+  let fm = arr(ch.looks);
+  if (!fm.length) fm = arr(S.looks).filter((l) => has(l.title)).map((l) => ({ sphere: l.sphere, title: l.title }));
+  fm = fm.slice(0, 3).map((l) => typeof l === 'string' ? { title: l } : l);
+  if (!rules.length && !sw.length && !fm.length) return null;
+  return {
+    cls: 'dark cheat',
+    html: `
+      ${orbit({ size: 520, x: 660, y: -140, dots: [[0, 210, 10, true], [1, 90, 6]] })}
+      <div class="kicker"><b>14</b> Шпаргалка</div>
+      <h1>Сохрани<br><em>скрин</em></h1>
+      <div class="stack" style="margin-top:48px">
+        ${rules.length ? `<div class="gap-s"><div class="label">5 главных правил</div><ol class="rules">${rules.map((r) => `<li><span>${T(r)}</span></li>`).join('')}</ol></div>` : ''}
+        ${sw.length ? `<div class="gap-m"><div class="label">Твои цвета</div>${swatches(sw)}</div>` : ''}
+        ${fm.length ? `<div class="gap-s"><div class="label">Формулы образов</div><div class="fml">${fm.map((l) => `<div>${has(l.sphere) ? `<b>${E(l.sphere)}</b>` : ''}${E(l.title)}</div>`).join('')}</div></div>` : ''}
+      </div>`,
+  };
+});
+
+page(15, (S) => {
+  const f = S.final || {};
+  const contacts = arr(f.contacts).filter((c) => has(c.value));
+  if (!has(f.next_step) && !contacts.length && !has(f.message)) return null;
+  return {
+    html: `
+      ${orbit({ size: 1000, x: 300, y: 820, rings: [1, .75, .5, .25], dashed: [0, 2], dots: [[0, 300, 14, true], [1, 30, 9], [2, 200, 7], [3, 110, 5]] })}
+      <div class="kicker"><b>15</b> Дальше</div>
+      <h1>Карта готова.<br><em>Что дальше?</em></h1>
+      <div class="stack" style="margin-top:64px">
+        ${has(f.next_step) ? `<div class="box red gap-s"><div class="label red">Следующий шаг</div><p class="text-l">${T(f.next_step)}</p></div>` : ''}
+        ${has(f.message) ? `<p class="text">${T(f.message)}</p>` : ''}
+        ${contacts.length ? `<div class="contacts">${contacts.map((c) => `<div class="row"><span class="k">${E(c.label)}</span><span>${E(c.value)}</span></div>`).join('')}</div>` : ''}
+      </div>`,
+  };
+});
+
+const SHORT = [0, 1, 2, 4, 5, 9, 11, 14, 15];
+
+// ---------------- сборка ----------------
+function render(data) {
+  const client = data.client || {};
+  const S = client.stylist || {};
+  const A = client.anketa || {};
+  const mode = String(data.mode || client.mode || 'FULL').toUpperCase() === 'SHORT' ? 'SHORT' : 'FULL';
+  const D = Object.assign({ name: { full: '', first: '' } }, data.derived || {});
+  if (!D.name.full) D.name.full = String(A.q1 || '').split(/[,;\n(]|\d/)[0].trim();
+  PHOTOS = data.photos || {};
+  PHOTO_BASE = data.photoBase || '';
+  const list = mode === 'SHORT' ? SHORT : PAGES.map((_, i) => i);
+  const out = [];
+  const skipped = [];
+  for (const n of list) {
+    let r;
+    try { r = PAGES[n](S, A, D); } catch (e) { console.error(`Страница ${n}:`, e); r = null; }
+    if (!r) { skipped.push(n); continue; }
+    (Array.isArray(r) ? r : [r]).forEach((p) => out.push({ n, ...p }));
+  }
+  const clientName = (S.meta && S.meta.client_name) || D.name.full;
+  const book = document.getElementById('book');
+  book.innerHTML = out.map((p, i) => `<section class="page ${p.cls || ''}" data-n="${p.n}">
+      <div class="content">${p.html}</div>
+      ${p.nofoot ? '' : `<div class="foot"><span>Натальная карта стиля · ${E(clientName)}</span><span>${String(i + 1).padStart(2, '0')} / ${String(out.length).padStart(2, '0')}</span></div>`}
+    </section>`).join('');
+  window.__RESULT__ = { mode, pages: out.map((p) => p.n), skipped };
+}
+
+// Если содержимое не влезло в 1920px — аккуратно уменьшаем блок (и сообщаем в консоль экспорта).
+function fit() {
+  const warn = [];
+  document.querySelectorAll('.page .content').forEach((c) => {
+    // декоративные орбиты могут выходить за край — при замере их не учитываем
+    const orbits = [...c.querySelectorAll('.orbit')];
+    orbits.forEach((o) => { o.style.display = 'none'; });
+    let z = 1;
+    while (c.scrollHeight > c.clientHeight + 1 && z > 0.62) { z -= 0.02; c.style.zoom = z; }
+    orbits.forEach((o) => { o.style.display = ''; });
+    if (z < 1) warn.push(`стр. ${c.parentElement.dataset.n}: текст уменьшен до ${Math.round(z * 100)}%`);
+  });
+  window.__RESULT__.fit = warn;
+}
+
+function screenZoom() {
+  if (window.__DATA__ && window.__DATA__.print) return;
+  const book = document.getElementById('book');
+  const w = Math.min(document.documentElement.clientWidth, 540);
+  book.style.zoom = w / 1080;
+}
+
+async function start() {
+  let data = window.__DATA__;
+  if (!data) {
+    const q = new URLSearchParams(location.search).get('client');
+    if (q) {
+      const client = await (await fetch(q)).json();
+      data = { client, photoBase: q.replace(/[^/]*$/, '') + 'photos/' };
+    }
+  }
+  if (!data) {
+    document.getElementById('book').outerHTML = `<div class="empty"><b>Натальная карта стиля</b><br>Шаблон без данных. Соберите PDF командой
+      <code>node export.js clients/Имя/client.json</code> или откройте через веб-сервер:
+      <code>template.html?client=clients/Имя/client.json</code>.</div>`;
+    return;
+  }
+  render(data);
+  try { await document.fonts.ready; } catch (e) {}
+  await Promise.all([...document.images].map((i) => i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; })));
+  fit();
+  screenZoom();
+  window.addEventListener('resize', screenZoom);
+  window.__READY__ = true;
+}
+start();
+})();
+</script>
+</body>
+</html>

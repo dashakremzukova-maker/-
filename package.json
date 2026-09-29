@@ -1,0 +1,13 @@
+{
+  "name": "natal-style-map",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Шаблон персонального стайлбука «Натальная карта стиля»",
+  "scripts": {
+    "import": "node import.js",
+    "export": "node export.js"
+  },
+  "dependencies": {
+    "playwright": "^1.56.1"
+  }
+}

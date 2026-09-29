@@ -1,0 +1,12 @@
+{
+  "meta": { "stylist_name": "Имя Стилиста" },
+  "final": {
+    "next_step": "",
+    "message": "",
+    "contacts": [
+      { "label": "Instagram", "value": "@your_instagram" },
+      { "label": "Telegram", "value": "t.me/your_name" },
+      { "label": "Телефон", "value": "+7 900 000-00-00" }
+    ]
+  }
+}
