@@ -2,7 +2,7 @@
 """
 Собирает сторис 1080x1920 из фото и текстов (stories.json).
 
-Шрифты на всех слайдах одни: заголовки Yeseva One, текст Montserrat. Цвета задаются
+Шрифты на всех слайдах одни: заголовки Yeseva One, текст Raleway. Цвета задаются
 индивидуально для каждого слайда в stories.json:
   text     — основной цвет текста
   accent   — цвет заголовка, **выделений** и цены
@@ -37,14 +37,14 @@ MARGIN_X = 84
 SAFE_TOP = 250      # верх под аватар/полоски Instagram
 SAFE_BOTTOM = 300   # низ под поле «Отправить сообщение»
 
-SIZES = {"title": 70, "body": 41, "price": 48, "small": 34}
+SIZES = {"title": 70, "body": 42, "price": 50, "small": 35}
 LEADING = 1.18
 
 
 FONTS = {
     "Title": "YesevaOne-400.ttf",   # заголовки
-    "Medium": "Montserrat-400.ttf", # основной текст
-    "Bold": "Montserrat-600.ttf",   # выделения и цены
+    "Medium": "Raleway-400.ttf",    # основной текст
+    "Bold": "Raleway-600.ttf",      # выделения и цены
 }
 
 
