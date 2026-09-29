@@ -2,7 +2,7 @@
 """
 Собирает сторис 1080x1920 из фото и текстов (stories.json).
 
-Шрифты на всех слайдах одни: заголовки Yeseva One, текст Lora. Цвета задаются
+Шрифты на всех слайдах одни: заголовки Yeseva One, текст Montserrat. Цвета задаются
 индивидуально для каждого слайда в stories.json:
   text     — основной цвет текста
   accent   — цвет заголовка, **выделений** и цены
@@ -37,14 +37,14 @@ MARGIN_X = 84
 SAFE_TOP = 250      # верх под аватар/полоски Instagram
 SAFE_BOTTOM = 300   # низ под поле «Отправить сообщение»
 
-SIZES = {"title": 70, "body": 42, "price": 50, "small": 35}
+SIZES = {"title": 70, "body": 41, "price": 48, "small": 34}
 LEADING = 1.18
 
 
 FONTS = {
     "Title": "YesevaOne-400.ttf",   # заголовки
-    "Medium": "Lora-500.ttf",       # основной текст
-    "Bold": "Lora-700.ttf",         # выделения и цены
+    "Medium": "Montserrat-400.ttf", # основной текст
+    "Bold": "Montserrat-600.ttf",   # выделения и цены
 }
 
 
@@ -52,8 +52,8 @@ def font(weight, size):
     return ImageFont.truetype(str(FONT_DIR / FONTS[weight]), size)
 
 
-ARROW = "→"
-ARROW_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # в Lora нет стрелки
+SYMBOLS = {"→", "•"}  # рисуются шрифтом DejaVu: одинаково в любом шрифте
+ARROW_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # одинаковая стрелка во всех шрифтах
 
 
 def arrow_font(f):
@@ -61,14 +61,14 @@ def arrow_font(f):
 
 
 def word_len(word, f):
-    return arrow_font(f).getlength(word) if word == ARROW else f.getlength(word)
+    return arrow_font(f).getlength(word) if word in SYMBOLS else f.getlength(word)
 
 
 def draw_word(d, xy, word, f, fill):
-    if word == ARROW:
+    if word in SYMBOLS:
         af = arrow_font(f)
-        # выравниваем стрелку по высоте строчных букв основного шрифта
-        dy = (f.getbbox("х")[1] + f.getbbox("х")[3]) / 2 - (af.getbbox(ARROW)[1] + af.getbbox(ARROW)[3]) / 2
+        # выравниваем символ по высоте строчных букв основного шрифта
+        dy = (f.getbbox("х")[1] + f.getbbox("х")[3]) / 2 - (af.getbbox(word)[1] + af.getbbox(word)[3]) / 2
         d.text((xy[0], xy[1] + dy), word, font=af, fill=fill)
     else:
         d.text(xy, word, font=f, fill=fill)
