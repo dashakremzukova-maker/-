@@ -6,7 +6,7 @@ from make_stories import render, ROOT
 SLIDE = {
     "image": "src/00_uslugi_cover.jpg",
     "focus_x": 0.3, "placement": "bottom",
-    "overlay": "#14110F", "alpha": 225, "text": "#F3E6D3", "accent": "#E8B98A",
+    "overlay": "#14110F", "alpha": 225, "text": "#FFFFFF", "accent": "#FFFFFF",
     "lines": [
         "# Работа со мной",
         "4 формата под твою задачу.",
