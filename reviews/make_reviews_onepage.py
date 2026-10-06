@@ -292,7 +292,18 @@ def _band():
     return img
 
 
+FONY = mr.SRC / "fony"
+FONY_CROP = {1: (0.5, 0.5), 2: (0.5, 0.35), 3: (0.5, 0.25), 4: (0.5, 0.5), 5: (0.4, 0.5)}
+
+
+def _fon(n):
+    from PIL import ImageOps
+    return ImageOps.fit(ImageOps.exif_transpose(Image.open(FONY / f"fon_{n}.jpg")).convert("RGB"),
+                        (W, H), Image.LANCZOS, centering=FONY_CROP[n])
+
+
 EXTRA = {
+    **{f"fon_{n}": (lambda n=n: _fon(n)) for n in FONY_CROP},
     "kostyum_yarko": lambda: _vivid(STORIES_SRC / "08_ne_znaesh.jpg", (0.5, 0.45), 4, 50),
     "telefon_yarko": lambda: _vivid(mr.ROOT.parent / "highlights" / "src" / "02_otzyvy.jpg", (0.5, 0.5), 3, 45),
     "tkan": _fabric,
@@ -321,22 +332,37 @@ def red_background(kind="otpechatok"):
     return Image.blend(bg, tint, dark / 255)
 
 
+def kind_has_photo(kind):
+    return kind.startswith("fon_")
+
+
 def variant_d(label, parts, num, last, bg="otpechatok"):
     img = red_background(bg)
     d = ImageDraw.Draw(img)
     x0 = 70
     # надзаголовок разрядкой
-    fs = mr.font("Raleway-600.ttf", 26)
-    spaced(d, (x0, 64), f"ОТЗЫВ  ·  {num:02d}", fs, PEACH, 7)
-    # заголовок строчными, Yeseva One
+    light = np.asarray(img.crop((x0, 50, W - x0, 230)).convert("L")).mean() > 150
+    title_c = mr.ACCENT if light else (255, 255, 255)
+    label_c = (110, 90, 84) if light else PEACH
+    plaque_c = (244, 239, 232, 225) if light else (40, 6, 10, 165)
     size = 76
     ft = mr.font("YesevaOne-400.ttf", size)
     while ft.getlength(label) > W - 2 * x0:
         size -= 2
         ft = mr.font("YesevaOne-400.ttf", size)
-    d.text((x0, 104), label, font=ft, fill=(255, 255, 255))
+    if kind_has_photo(bg):
+        # плашка под заголовком, чтобы он читался поверх предметов на фото
+        pw = int(max(ft.getlength(label), 320)) + 56
+        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ImageDraw.Draw(layer).rounded_rectangle([x0 - 28, 44, x0 - 28 + pw, 236], 26, fill=plaque_c)
+        img = Image.alpha_composite(img.convert("RGBA"), layer).convert("RGB")
+        d = ImageDraw.Draw(img)
+    fs = mr.font("Raleway-600.ttf", 26)
+    spaced(d, (x0, 64), f"ОТЗЫВ  ·  {num:02d}", fs, label_c, 7)
+    # заголовок строчными, Yeseva One
+    d.text((x0, 104), label, font=ft, fill=title_c)
     lw = ft.getlength(label)
-    d.line([(x0, 214), (x0 + 90, 214)], fill=PEACH, width=3)
+    d.line([(x0, 214), (x0 + 90, 214)], fill=title_c if light else PEACH, width=3)
 
     top_area, bottom_area = 250, 110
     cols = two_columns(raw_pieces(parts))
@@ -364,8 +390,17 @@ def variant_d(label, parts, num, last, bg="otpechatok"):
         t = "Хочешь так же? Напиши в директ слово СТИЛЬ"
         fb = mr.font("Raleway-600.ttf", 30)
         under = np.asarray(img.crop((200, H - 80, W - 200, H - 40)).convert("L")).mean()
-        color = mr.ACCENT if under > 150 else (255, 255, 255)   # на светлом фоне бордо
-        d.text(((W - fb.getlength(t)) // 2, H - 78), t, font=fb, fill=color)
+        lt = under > 150
+        color = mr.ACCENT if lt else (255, 255, 255)   # на светлом фоне бордо
+        tw_ = fb.getlength(t)
+        if kind_has_photo(bg):
+            pc = (244, 239, 232, 225) if lt else (40, 6, 10, 165)
+            layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            ImageDraw.Draw(layer).rounded_rectangle(
+                [(W - tw_) // 2 - 30, H - 92, (W + tw_) // 2 + 30, H - 30], 31, fill=pc)
+            img = Image.alpha_composite(img.convert("RGBA"), layer).convert("RGB")
+            d = ImageDraw.Draw(img)
+        d.text(((W - tw_) // 2, H - 78), t, font=fb, fill=color)
     return img, s, lw
 
 
