@@ -467,8 +467,17 @@ def variant_b(label, paras, last):
     return img, size
 
 
+FINAL_BG = {"Ведение 3 месяца": "fon_3", "Шопинг-сопровождение": "fon_4"}
+FINAL = mr.ROOT / "final"
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    FINAL.mkdir(exist_ok=True)
+    names = {"Ведение 3 месяца": "02_vedenie.jpg", "Шопинг-сопровождение": "03_shopping.jpg"}
+    for i, (label, parts) in enumerate(mr.REVIEWS):
+        img, _, _ = variant_d(label, parts, i + 1, i == len(mr.REVIEWS) - 1, FINAL_BG[label])
+        img.save(FINAL / names[label], quality=95)
     for i, (label, parts) in enumerate(mr.REVIEWS):
         last = i == len(mr.REVIEWS) - 1
         a, s = variant_a(label, parts, last)
