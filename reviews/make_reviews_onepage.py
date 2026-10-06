@@ -5,6 +5,8 @@
 Вариант A — скриншоты: склеенная лента отзыва делится пополам по пустой
 строке и ставится в две колонки на одной карточке.
 Вариант B — текст отзыва набран шрифтом Raleway (дословно, без длинных тире).
+Вариант C — как A, но скриншоты как есть: фон и облачко Telegram, время
+сообщения. Видно, что это настоящая переписка.
 
 Запуск: python3 -I make_reviews_onepage.py
 На выходе: output/onepage/A_*.jpg и B_*.jpg
@@ -134,6 +136,82 @@ def variant_a(label, parts, last):
     return img, s
 
 
+# ---------- вариант C: скриншоты как есть, в две колонки ----------
+
+def raw_pieces(parts):
+    """Скриншоты как есть (фон, облачко и время Telegram), без повторов на стыках."""
+    pieces = []
+    for name, top, bottom in parts:
+        im = Image.open(mr.SRC / f"{name}.jpg").convert("RGB")
+        if top == "skip_partial":
+            top = mr.first_full_line_start(im) if pieces else 0
+        if bottom == "text_end":
+            bottom = None
+        pieces.append(im.crop((0, top, im.width, bottom or im.height)))
+    return pieces
+
+
+def split_at_blank(im, y):
+    a = np.asarray(im.convert("L"))
+    blank = [r for r in range(im.height) if a[r, 60:1000].min() > 225]
+    cut = min(blank, key=lambda r: abs(r - y))
+    return im.crop((0, 0, im.width, cut)), im.crop((0, cut, im.width, im.height))
+
+
+def two_columns(pieces):
+    """Раскладывает скриншоты по двум колонкам примерно поровну;
+    скриншот на границе делится по пустой строке."""
+    half = sum(p.height for p in pieces) / 2
+    left, right, acc = [], [], 0
+    for p in pieces:
+        if right or acc >= half:
+            right.append(p)
+        elif acc + p.height <= half + 60:
+            left.append(p)
+            acc += p.height
+        else:
+            a, b = split_at_blank(p, int(half - acc))
+            left.append(a)
+            right.append(b)
+            acc = half
+    return left, right
+
+
+def rounded(im, r):
+    m = Image.new("L", im.size, 0)
+    ImageDraw.Draw(m).rounded_rectangle([0, 0, im.width - 1, im.height - 1], r, fill=255)
+    return m
+
+
+def variant_c(label, parts, last):
+    img = Image.new("RGB", (W, H), mr.BG)
+    d = ImageDraw.Draw(img)
+    x0 = (W - CARD_W) // 2
+    header(d, label, x0)
+    cols = two_columns(raw_pieces(parts))
+    gap, vgap = 28, 16
+    src_w = cols[0][0].width
+    col_h = [sum(p.height for p in c) for c in cols]
+    n_gaps = [len(c) - 1 for c in cols]
+    s = (CARD_W - gap) / 2 / src_w
+    s = min(s, min((H - TOP - BOTTOM - g * vgap) / h for h, g in zip(col_h, n_gaps)))
+    tw = round(src_w * s)
+    heights = [round(h * s) + g * vgap for h, g in zip(col_h, n_gaps)]
+    top0 = TOP + (H - TOP - BOTTOM - max(heights)) // 2
+    x = (W - (2 * tw + gap)) // 2
+    for c in cols:
+        y = top0
+        for p in c:
+            tile = p.resize((tw, round(p.height * s)), Image.LANCZOS)
+            sh, pad = mr.shadow(tile.size, 24, blur=20, alpha=70)
+            img.paste((60, 40, 30), (x - pad, y - pad), sh)
+            img.paste(tile, (x, y), rounded(tile, 24))
+            y += tile.height + vgap
+        x += tw + gap
+    footer(d, x0, last)
+    return img, s
+
+
 # ---------- вариант B: набранный текст ----------
 
 def layout_text(paras, size, maxw):
@@ -205,6 +283,9 @@ def main():
         a.save(OUT / f"A_{i + 1:02d}.jpg", quality=93)
         b, size = variant_b(label, TEXTS[label], last)
         b.save(OUT / f"B_{i + 1:02d}.jpg", quality=93)
+        c, sc = variant_c(label, parts, last)
+        c.save(OUT / f"C_{i + 1:02d}.jpg", quality=93)
+        print(label, f"C: масштаб скриншота {sc:.2f}")
         print(label, f"A: масштаб скриншота {s:.2f}", f"B: шрифт {size}px")
 
 
