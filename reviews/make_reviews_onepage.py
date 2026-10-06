@@ -332,37 +332,123 @@ def red_background(kind="otpechatok"):
     return Image.blend(bg, tint, dark / 255)
 
 
+# ---------- стили заголовка ----------
+
+HEADER_STYLES = ["plaque", "band_center", "number", "caps_lines"]
+
+
+def _overlay(img, draw_fn):
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    draw_fn(ImageDraw.Draw(layer))
+    return Image.alpha_composite(img.convert("RGBA"), layer).convert("RGB")
+
+
+def _frosted_band(img, y0, y1, light):
+    """Матовая полоса во всю ширину: фото под ней размыто и притушено."""
+    from PIL import ImageFilter
+    band = img.crop((0, y0, W, y1)).filter(ImageFilter.GaussianBlur(18))
+    tint = Image.new("RGB", band.size, (244, 239, 232) if light else (40, 6, 10))
+    band = Image.blend(band, tint, 0.72 if light else 0.6)
+    # нижний край растворяется в фото
+    fade = 60
+    m = Image.new("L", (1, band.height), 255)
+    for y in range(band.height - fade, band.height):
+        m.putpixel((0, y), int(255 * (band.height - y) / fade))
+    img = img.copy()
+    img.paste(band, (0, y0), m.resize(band.size))
+    return img
+
+
+def _fit(fontname, text, size, maxw):
+    f = mr.font(fontname, size)
+    while f.getlength(text) > maxw:
+        size -= 2
+        f = mr.font(fontname, size)
+    return f
+
+
+def draw_header(img, label, num, style, photo):
+    x0 = 70
+    light = np.asarray(img.crop((x0, 50, W - x0, 230)).convert("L")).mean() > 150
+    title_c = mr.ACCENT if light else (255, 255, 255)
+    label_c = (110, 90, 84) if light else PEACH
+    fs = mr.font("Raleway-600.ttf", 26)
+
+    if style == "plaque":           # как сейчас: плашка слева
+        ft = _fit("YesevaOne-400.ttf", label, 76, W - 2 * x0)
+        if photo:
+            pw = int(max(ft.getlength(label), 320)) + 56
+            pc = (244, 239, 232, 225) if light else (40, 6, 10, 165)
+            img = _overlay(img, lambda d: d.rounded_rectangle([x0 - 28, 44, x0 - 28 + pw, 236], 26, fill=pc))
+        d = ImageDraw.Draw(img)
+        spaced(d, (x0, 64), f"ОТЗЫВ  ·  {num:02d}", fs, label_c, 7)
+        d.text((x0, 104), label, font=ft, fill=title_c)
+        d.line([(x0, 214), (x0 + 90, 214)], fill=title_c if light else PEACH, width=3)
+        return img, ft.getlength(label)
+
+    if style == "band_center":      # матовая полоса, всё по центру
+        img = _frosted_band(img, 0, 245, light)
+        d = ImageDraw.Draw(img)
+        lab = f"ОТЗЫВ  ·  {num:02d}"
+        lw_ = sum(fs.getlength(c) + 7 for c in lab) - 7
+        spaced(d, ((W - lw_) / 2, 52), lab, fs, label_c, 7)
+        ft = _fit("YesevaOne-400.ttf", label, 80, W - 2 * x0)
+        tw = ft.getlength(label)
+        d.text(((W - tw) / 2, 92), label, font=ft, fill=title_c)
+        d.line([(W / 2 - 45, 206), (W / 2 + 45, 206)], fill=title_c if light else PEACH, width=3)
+        return img, tw
+
+    if style == "number":           # крупный контурный номер + заголовок справа
+        img = _frosted_band(img, 0, 245, light)
+        d = ImageDraw.Draw(img)
+        fn = mr.font("YesevaOne-400.ttf", 190)
+        n = f"{num:02d}"
+        sc = title_c if light else PEACH
+        img = _overlay(img, lambda dl: dl.text((x0 - 6, 18), n, font=fn, fill=(0, 0, 0, 0),
+                                               stroke_width=3, stroke_fill=(*sc, 255)))
+        d = ImageDraw.Draw(img)
+        nx = x0 + fn.getlength(n) + 34
+        d.line([(nx - 18, 66), (nx - 18, 200)], fill=label_c, width=2)
+        spaced(d, (nx, 70), "ОТЗЫВ", fs, label_c, 9)
+        ft = _fit("YesevaOne-400.ttf", label, 64, W - nx - x0)
+        d.text((nx, 112), label, font=ft, fill=title_c)
+        return img, ft.getlength(label)
+
+    if style == "caps_lines":       # капс с разрядкой между тонкими линиями
+        img = _frosted_band(img, 0, 245, light)
+        d = ImageDraw.Draw(img)
+        lab = f"ОТЗЫВ  {num:02d}"
+        lw_ = sum(fs.getlength(c) + 9 for c in lab) - 9
+        spaced(d, ((W - lw_) / 2, 56), lab, fs, label_c, 9)
+        text = label.upper()
+        size, track = 58, 6
+        while True:
+            ft = mr.font("YesevaOne-400.ttf", size)
+            tw = sum(ft.getlength(c) + track for c in text) - track
+            if tw <= W - 2 * x0 - 140 or size <= 30:
+                break
+            size -= 2
+        tx = (W - tw) / 2
+        ty = 112
+        spaced(d, (tx, ty), text, ft, title_c, track)
+        cy = ty + ft.getbbox("Н")[1] + (ft.getbbox("Н")[3] - ft.getbbox("Н")[1]) / 2
+        d.line([(x0, cy), (tx - 26, cy)], fill=label_c, width=2)
+        d.line([(tx + tw + 26, cy), (W - x0, cy)], fill=label_c, width=2)
+        return img, tw
+
+    raise ValueError(style)
+
+
 def kind_has_photo(kind):
     return kind.startswith("fon_")
 
 
-def variant_d(label, parts, num, last, bg="otpechatok"):
+def variant_d(label, parts, num, last, bg="otpechatok", hstyle="plaque"):
     img = red_background(bg)
     d = ImageDraw.Draw(img)
     x0 = 70
-    # надзаголовок разрядкой
-    light = np.asarray(img.crop((x0, 50, W - x0, 230)).convert("L")).mean() > 150
-    title_c = mr.ACCENT if light else (255, 255, 255)
-    label_c = (110, 90, 84) if light else PEACH
-    plaque_c = (244, 239, 232, 225) if light else (40, 6, 10, 165)
-    size = 76
-    ft = mr.font("YesevaOne-400.ttf", size)
-    while ft.getlength(label) > W - 2 * x0:
-        size -= 2
-        ft = mr.font("YesevaOne-400.ttf", size)
-    if kind_has_photo(bg):
-        # плашка под заголовком, чтобы он читался поверх предметов на фото
-        pw = int(max(ft.getlength(label), 320)) + 56
-        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        ImageDraw.Draw(layer).rounded_rectangle([x0 - 28, 44, x0 - 28 + pw, 236], 26, fill=plaque_c)
-        img = Image.alpha_composite(img.convert("RGBA"), layer).convert("RGB")
-        d = ImageDraw.Draw(img)
-    fs = mr.font("Raleway-600.ttf", 26)
-    spaced(d, (x0, 64), f"ОТЗЫВ  ·  {num:02d}", fs, label_c, 7)
-    # заголовок строчными, Yeseva One
-    d.text((x0, 104), label, font=ft, fill=title_c)
-    lw = ft.getlength(label)
-    d.line([(x0, 214), (x0 + 90, 214)], fill=title_c if light else PEACH, width=3)
+    img, lw = draw_header(img, label, num, hstyle, kind_has_photo(bg))
+    d = ImageDraw.Draw(img)
 
     top_area, bottom_area = 250, 110
     cols = two_columns(raw_pieces(parts))
@@ -478,6 +564,9 @@ def main():
     for i, (label, parts) in enumerate(mr.REVIEWS):
         img, _, _ = variant_d(label, parts, i + 1, i == len(mr.REVIEWS) - 1, FINAL_BG[label])
         img.save(FINAL / names[label], quality=95)
+        for hs in HEADER_STYLES:
+            v, _, _ = variant_d(label, parts, i + 1, i == len(mr.REVIEWS) - 1, FINAL_BG[label], hs)
+            v.save(OUT / f"hdr_{hs}_{i + 1:02d}.jpg", quality=93)
     for i, (label, parts) in enumerate(mr.REVIEWS):
         last = i == len(mr.REVIEWS) - 1
         a, s = variant_a(label, parts, last)
