@@ -227,14 +227,37 @@ def spaced(d, xy, text, f, fill, track):
     return x
 
 
-def red_background():
-    from PIL import ImageEnhance, ImageOps
-    bg = ImageOps.fit(Image.open(RED_BG).convert("RGB"), (W, H), Image.LANCZOS, centering=(0.5, 0.6))
-    return ImageEnhance.Brightness(bg).enhance(0.85)
+# фоны с красным: (файл, центр кропа, размытие, затемнение бордовым 0..255)
+BACKGROUNDS = {
+    "otpechatok": (RED_BG, (0.5, 0.6), 0, 40),
+    "kostyum": (mr.ROOT.parent / "stories" / "src" / "08_ne_znaesh.jpg", (0.5, 0.45), 10, 120),
+    "kostyum_sidya": (mr.ROOT.parent / "stories" / "src" / "01_vhod.jpg", (0.3, 0.5), 10, 120),
+    "telefon": (mr.ROOT.parent / "highlights" / "src" / "02_otzyvy.jpg", (0.5, 0.5), 6, 110),
+    "plate": (mr.ROOT.parent / "highlights" / "src" / "04_obo_mne.jpg", (0.65, 0.4), 8, 120),
+    "krasnyi": (None, None, 0, 0),
+}
+BG_TINT = (40, 6, 10)
 
 
-def variant_d(label, parts, num, last):
-    img = red_background()
+def red_background(kind="otpechatok"):
+    from PIL import ImageFilter, ImageOps
+    path, centering, blur, dark = BACKGROUNDS[kind]
+    if path is None:  # однотонный красный с мягкой виньеткой
+        bg = Image.new("RGB", (W, H), (150, 22, 30))
+        vign = Image.new("L", (W, H), 0)
+        ImageDraw.Draw(vign).ellipse([-300, -200, W + 300, H + 200], fill=255)
+        vign = vign.filter(ImageFilter.GaussianBlur(220))
+        dark_bg = Image.new("RGB", (W, H), (90, 10, 18))
+        return Image.composite(bg, dark_bg, vign)
+    bg = ImageOps.fit(Image.open(path).convert("RGB"), (W, H), Image.LANCZOS, centering=centering)
+    if blur:
+        bg = bg.filter(ImageFilter.GaussianBlur(blur))
+    tint = Image.new("RGB", (W, H), BG_TINT)
+    return Image.blend(bg, tint, dark / 255)
+
+
+def variant_d(label, parts, num, last, bg="otpechatok"):
+    img = red_background(bg)
     d = ImageDraw.Draw(img)
     x0 = 70
     # надзаголовок разрядкой
@@ -355,6 +378,9 @@ def main():
         print(label, f"C: масштаб скриншота {sc:.2f}")
         dimg, sd, lw = variant_d(label, parts, i + 1, last)
         dimg.save(OUT / f"D_{i + 1:02d}.jpg", quality=93)
+        for kind in BACKGROUNDS:
+            v, _, _ = variant_d(label, parts, i + 1, last, kind)
+            v.save(OUT / f"bg_{kind}_{i + 1:02d}.jpg", quality=93)
         print(label, f"D: масштаб {sd:.2f}, ширина заголовка {lw:.0f}px")
         print(label, f"A: масштаб скриншота {s:.2f}", f"B: шрифт {size}px")
 
