@@ -562,7 +562,7 @@ def main():
     FINAL.mkdir(exist_ok=True)
     names = {"Ведение 3 месяца": "02_vedenie.jpg", "Шопинг-сопровождение": "03_shopping.jpg"}
     for i, (label, parts) in enumerate(mr.REVIEWS):
-        img, _, _ = variant_d(label, parts, i + 1, i == len(mr.REVIEWS) - 1, FINAL_BG[label])
+        img, _, _ = variant_d(label, parts, i + 1, i == len(mr.REVIEWS) - 1, FINAL_BG[label], "caps_lines")
         img.save(FINAL / names[label], quality=95)
         for hs in HEADER_STYLES:
             v, _, _ = variant_d(label, parts, i + 1, i == len(mr.REVIEWS) - 1, FINAL_BG[label], hs)

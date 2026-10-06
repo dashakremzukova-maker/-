@@ -3,9 +3,10 @@
 Обложка карусели «Отзывы»: видео 1080x1350 (MP4, H.264), 30 кадров/с.
 
 Плавный наезд камеры на фото, снизу тёмная подложка как на сторис об
-услугах. Заголовок «ОТЗЫВЫ» (Yeseva One) выплывает снизу, под ним по
+услугах. Заголовок «ОТЗЫВЫ» (Yeseva One, капс с разрядкой, тонкие линии
+по бокам, как на слайдах с отзывами) выплывает снизу, под ним по
 очереди сменяются короткие цитаты клиенток (Raleway), внизу «Листай →»
-с покачивающейся стрелкой. Видео зациклено: в конце текст гаснет,
+с покачивающейся стрелкой. Всё по центру. Видео зациклено: в конце текст гаснет,
 чтобы повтор начинался мягко.
 
 Запуск: python3 -I make_cover_video.py
@@ -30,6 +31,7 @@ FOCUS_X = 0.62              # девушка у окна — правее цен
 ZOOM = (1.10, 1.0)          # наезд: от крупного к общему плану
 OVERLAY = (20, 17, 15)
 WHITE = (255, 255, 255)
+PEACH = (240, 201, 168)
 MARGIN = 84
 
 TITLE = "ОТЗЫВЫ"
@@ -79,11 +81,40 @@ def wrap(text, f, maxw):
     return lines + [cur]
 
 
-def text_layer(lines, f, x, y, alpha, lh):
+def text_layer(lines, f, x, y, alpha, lh, center=False):
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     for i, ln in enumerate(lines):
-        d.text((x, y + i * lh), ln, font=f, fill=(*WHITE, int(255 * alpha)))
+        lx = (W - f.getlength(ln)) / 2 if center else x
+        d.text((lx, y + i * lh), ln, font=f, fill=(*WHITE, int(255 * alpha)))
+    return layer
+
+
+def spaced_width(text, f, track):
+    return sum(f.getlength(c) + track for c in text) - track
+
+
+def title_layer(f, track, y, alpha, grow):
+    """Заголовок капсом с разрядкой по центру и тонкими линиями по бокам,
+    как на слайдах с отзывами. grow 0..1 — насколько выросли линии."""
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    tw = spaced_width(TITLE, f, track)
+    x = (W - tw) / 2
+    col = (*WHITE, int(255 * alpha))
+    for ch in TITLE:
+        d.text((x, y), ch, font=f, fill=col)
+        x += f.getlength(ch) + track
+    bb = f.getbbox("Н")
+    cy = y + (bb[1] + bb[3]) / 2
+    left_end = (W - tw) / 2 - 34
+    right_start = (W + tw) / 2 + 34
+    full = left_end - MARGIN
+    seg = full * grow
+    lc = (*PEACH, int(255 * alpha))
+    if seg > 1:
+        d.line([(left_end - seg, cy), (left_end, cy)], fill=lc, width=2)
+        d.line([(right_start, cy), (right_start + seg, cy)], fill=lc, width=2)
     return layer
 
 
@@ -96,7 +127,8 @@ def main():
     base = ImageOps.fit(src, (big_w, big_h), Image.LANCZOS, centering=(FOCUS_X, 0.5))
     grad = gradient()
 
-    f_title = font("YesevaOne-400.ttf", 120)
+    f_title = font("YesevaOne-400.ttf", 96)
+    TRACK = 18
     f_quote = font("Raleway-400.ttf", 44)
     f_cta = font("Raleway-600.ttf", 38)
     f_arrow = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 34)
@@ -131,10 +163,10 @@ def main():
         frame.alpha_composite(grad)
 
         out = 1 - ease((t - out_start) / 0.6)
-        # заголовок выплывает снизу
+        # заголовок выплывает снизу, линии по бокам вырастают от него
         a = fade(t, 0.3, 0.9) * out
         dy = int(40 * (1 - fade(t, 0.3, 0.9)))
-        frame.alpha_composite(text_layer([TITLE], f_title, MARGIN, title_y + dy, a, 0))
+        frame.alpha_composite(title_layer(f_title, TRACK, title_y + dy, a, fade(t, 0.9, 0.9)))
 
         # цитаты сменяют друг друга
         k = int((t - q_start) // q_len)
@@ -143,16 +175,17 @@ def main():
             qa = min(ease(local / 0.4), 1 - ease((local - (q_len - 0.4)) / 0.4)) * out
             if k == len(QUOTES) - 1:
                 qa = ease(local / 0.4) * out  # последняя держится до конца
-            frame.alpha_composite(text_layer(q_lines[k], f_quote, MARGIN, quote_y, qa, 58))
+            frame.alpha_composite(text_layer(q_lines[k], f_quote, MARGIN, quote_y, qa, 58, center=True))
 
         # «Листай →» с покачивающейся стрелкой
         ca = fade(t, 1.0, 0.6) * out
         if ca > 0:
             layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
             d = ImageDraw.Draw(layer)
-            d.text((MARGIN, cta_y), CTA, font=f_cta, fill=(*WHITE, int(255 * ca)))
+            cx = (W - f_cta.getlength(CTA + " ") - f_arrow.getlength("→")) / 2
+            d.text((cx, cta_y), CTA, font=f_cta, fill=(*WHITE, int(255 * ca)))
             nudge = 10 * (0.5 + 0.5 * math.sin(2 * math.pi * t / 1.2))
-            ax = MARGIN + f_cta.getlength(CTA + " ") + nudge
+            ax = cx + f_cta.getlength(CTA + " ") + nudge
             d.text((ax, cta_y + 4), "→", font=f_arrow, fill=(*WHITE, int(255 * ca)))
             frame.alpha_composite(layer)
 
