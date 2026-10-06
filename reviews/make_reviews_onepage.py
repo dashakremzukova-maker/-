@@ -239,8 +239,73 @@ BACKGROUNDS = {
 BG_TINT = (40, 6, 10)
 
 
+STORIES_SRC = mr.ROOT.parent / "stories" / "src"
+
+
+def _top_shade(img, height=330, alpha=200):
+    """Тёмно-бордовая тень сверху, чтобы белый заголовок читался на светлом фото."""
+    m = Image.new("L", (1, H), 0)
+    for y in range(height):
+        m.putpixel((0, y), int(alpha * (1 - y / height) ** 1.3))
+    shade = Image.new("RGB", (W, H), BG_TINT)
+    return Image.composite(shade, img, m.resize((W, H)))
+
+
+def _vivid(path, centering, blur, dark, sat=1.35):
+    from PIL import ImageEnhance, ImageFilter, ImageOps
+    bg = ImageOps.fit(Image.open(path).convert("RGB"), (W, H), Image.LANCZOS, centering=centering)
+    bg = ImageEnhance.Color(bg).enhance(sat)
+    if blur:
+        bg = bg.filter(ImageFilter.GaussianBlur(blur))
+    return _top_shade(Image.blend(bg, Image.new("RGB", (W, H), BG_TINT), dark / 255))
+
+
+def _fabric():
+    """Крупный план красной ткани костюма."""
+    from PIL import ImageEnhance, ImageFilter
+    im = Image.open(STORIES_SRC / "08_ne_znaesh.jpg").convert("RGB")
+    w, h = im.size
+    crop = im.crop((int(w * 0.36), int(h * 0.36), int(w * 0.64), int(h * 0.71)))
+    crop = crop.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(5))
+    crop = ImageEnhance.Color(crop).enhance(1.2)
+    return Image.blend(crop, Image.new("RGB", (W, H), BG_TINT), 70 / 255)
+
+
+def _duotone(path, centering, dark=(45, 4, 10), light=(214, 38, 48)):
+    from PIL import ImageOps
+    g = ImageOps.fit(Image.open(path).convert("L"), (W, H), Image.LANCZOS, centering=centering)
+    return ImageOps.colorize(ImageOps.autocontrast(g, cutoff=2), dark, light)
+
+
+def _gradient(c1=(205, 32, 42), c2=(70, 6, 14)):
+    """Диагональный градиент: яркий красный слева сверху -> бордо справа снизу."""
+    yy, xx = np.mgrid[0:H, 0:W]
+    k = ((xx / W) * 0.45 + (yy / H) * 0.55)[..., None]
+    a = np.array(c1) * (1 - k) + np.array(c2) * k
+    return Image.fromarray(a.astype("uint8"))
+
+
+def _band():
+    """Кремовый фон с красной полосой сверху под заголовком."""
+    img = Image.new("RGB", (W, H), mr.BG)
+    img.paste(_gradient((185, 26, 36), (120, 14, 24)).crop((0, 0, W, 560)), (0, 0))
+    return img
+
+
+EXTRA = {
+    "kostyum_yarko": lambda: _vivid(STORIES_SRC / "08_ne_znaesh.jpg", (0.5, 0.45), 4, 50),
+    "telefon_yarko": lambda: _vivid(mr.ROOT.parent / "highlights" / "src" / "02_otzyvy.jpg", (0.5, 0.5), 3, 45),
+    "tkan": _fabric,
+    "duotone": lambda: _duotone(STORIES_SRC / "01_vhod.jpg", (0.3, 0.5)),
+    "gradient": _gradient,
+    "polosa": _band,
+}
+
+
 def red_background(kind="otpechatok"):
     from PIL import ImageFilter, ImageOps
+    if kind in EXTRA:
+        return EXTRA[kind]()
     path, centering, blur, dark = BACKGROUNDS[kind]
     if path is None:  # однотонный красный с мягкой виньеткой
         bg = Image.new("RGB", (W, H), (150, 22, 30))
@@ -298,7 +363,9 @@ def variant_d(label, parts, num, last, bg="otpechatok"):
     if last:
         t = "Хочешь так же? Напиши в директ слово СТИЛЬ"
         fb = mr.font("Raleway-600.ttf", 30)
-        d.text(((W - fb.getlength(t)) // 2, H - 78), t, font=fb, fill=(255, 255, 255))
+        under = np.asarray(img.crop((200, H - 80, W - 200, H - 40)).convert("L")).mean()
+        color = mr.ACCENT if under > 150 else (255, 255, 255)   # на светлом фоне бордо
+        d.text(((W - fb.getlength(t)) // 2, H - 78), t, font=fb, fill=color)
     return img, s, lw
 
 
@@ -378,7 +445,7 @@ def main():
         print(label, f"C: масштаб скриншота {sc:.2f}")
         dimg, sd, lw = variant_d(label, parts, i + 1, last)
         dimg.save(OUT / f"D_{i + 1:02d}.jpg", quality=93)
-        for kind in BACKGROUNDS:
+        for kind in list(BACKGROUNDS) + list(EXTRA):
             v, _, _ = variant_d(label, parts, i + 1, last, kind)
             v.save(OUT / f"bg_{kind}_{i + 1:02d}.jpg", quality=93)
         print(label, f"D: масштаб {sd:.2f}, ширина заголовка {lw:.0f}px")
