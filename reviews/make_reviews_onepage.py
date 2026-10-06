@@ -7,6 +7,7 @@
 Вариант B — текст отзыва набран шрифтом Raleway (дословно, без длинных тире).
 Вариант C — как A, но скриншоты как есть: фон и облачко Telegram, время
 сообщения. Видно, что это настоящая переписка.
+Вариант D — плитки как в C на красном фото-фоне, двухуровневый заголовок.
 
 Запуск: python3 -I make_reviews_onepage.py
 На выходе: output/onepage/A_*.jpg и B_*.jpg
@@ -212,6 +213,72 @@ def variant_c(label, parts, last):
     return img, s
 
 
+# ---------- вариант D: красный фон и стильный заголовок ----------
+
+RED_BG = mr.ROOT.parent / "stories" / "src" / "09_zapis.jpg"   # бордовый отпечаток
+PEACH = (240, 201, 168)
+
+
+def spaced(d, xy, text, f, fill, track):
+    x, y = xy
+    for ch in text:
+        d.text((x, y), ch, font=f, fill=fill)
+        x += f.getlength(ch) + track
+    return x
+
+
+def red_background():
+    from PIL import ImageEnhance, ImageOps
+    bg = ImageOps.fit(Image.open(RED_BG).convert("RGB"), (W, H), Image.LANCZOS, centering=(0.5, 0.6))
+    return ImageEnhance.Brightness(bg).enhance(0.85)
+
+
+def variant_d(label, parts, num, last):
+    img = red_background()
+    d = ImageDraw.Draw(img)
+    x0 = 70
+    # надзаголовок разрядкой
+    fs = mr.font("Raleway-600.ttf", 26)
+    spaced(d, (x0, 64), f"ОТЗЫВ  ·  {num:02d}", fs, PEACH, 7)
+    # заголовок строчными, Yeseva One
+    size = 76
+    ft = mr.font("YesevaOne-400.ttf", size)
+    while ft.getlength(label) > W - 2 * x0:
+        size -= 2
+        ft = mr.font("YesevaOne-400.ttf", size)
+    d.text((x0, 104), label, font=ft, fill=(255, 255, 255))
+    lw = ft.getlength(label)
+    d.line([(x0, 214), (x0 + 90, 214)], fill=PEACH, width=3)
+
+    top_area, bottom_area = 250, 110
+    cols = two_columns(raw_pieces(parts))
+    gap, vgap = 26, 14
+    src_w = cols[0][0].width
+    col_h = [sum(p.height for p in c) for c in cols]
+    n_gaps = [len(c) - 1 for c in cols]
+    s = (W - 2 * x0 - gap) / 2 / src_w
+    s = min(s, min((H - top_area - bottom_area - g * vgap) / h for h, g in zip(col_h, n_gaps)))
+    tw = round(src_w * s)
+    heights = [round(h * s) + g * vgap for h, g in zip(col_h, n_gaps)]
+    top0 = top_area + (H - top_area - bottom_area - max(heights)) // 2
+    x = (W - (2 * tw + gap)) // 2
+    for c in cols:
+        y = top0
+        for p in c:
+            tile = p.resize((tw, round(p.height * s)), Image.LANCZOS)
+            sh, pad = mr.shadow(tile.size, 24, blur=24, alpha=150)
+            img.paste((20, 5, 8), (x - pad, y - pad), sh)
+            img.paste(tile, (x, y), rounded(tile, 24))
+            y += tile.height + vgap
+        x += tw + gap
+
+    if last:
+        t = "Хочешь так же? Напиши в директ слово СТИЛЬ"
+        fb = mr.font("Raleway-600.ttf", 30)
+        d.text(((W - fb.getlength(t)) // 2, H - 78), t, font=fb, fill=(255, 255, 255))
+    return img, s, lw
+
+
 # ---------- вариант B: набранный текст ----------
 
 def layout_text(paras, size, maxw):
@@ -286,6 +353,9 @@ def main():
         c, sc = variant_c(label, parts, last)
         c.save(OUT / f"C_{i + 1:02d}.jpg", quality=93)
         print(label, f"C: масштаб скриншота {sc:.2f}")
+        dimg, sd, lw = variant_d(label, parts, i + 1, last)
+        dimg.save(OUT / f"D_{i + 1:02d}.jpg", quality=93)
+        print(label, f"D: масштаб {sd:.2f}, ширина заголовка {lw:.0f}px")
         print(label, f"A: масштаб скриншота {s:.2f}", f"B: шрифт {size}px")
 
 
