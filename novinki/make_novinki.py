@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
 """
-Карусель «Новинки недели»: 5 анимированных слайдов 1080x1350 (MP4, H.264, 30 к/с)
-и JPG-кадр каждого слайда (на случай, если нужна статичная версия).
+Карусель «Новинки недели»: 8 слайдов 1080x1350.
 
-Все слайды собраны из одного фото в примерочной (src/photo.jpg):
-  01 обложка — камера едет по образу сверху вниз, «НОВИНКИ НЕДЕЛИ»
-     выплывает снизу, выскакивает бейдж NEW, список вещей появляется по одной;
-  02–04 — наезд на каждую вещь (верх, карго, ботинки), номер, название
-     и короткий комментарий стилиста выезжают по очереди;
-  05 — образ целиком на размытом фоне, формула образа и призыв.
+  01 обложка — видео (MP4, H.264, 30 к/с): фото стоит на месте,
+     всплывает только заголовок «НОВИНКИ НЕДЕЛИ»;
+  02–08 — статичные JPG: фото образа, номер, название, подпись
+     и короткий комментарий стилиста.
 
+Фото берутся из src/retouched (сначала запустить retouch.py — ретушь кожи лица).
 Шрифты как на прошлых каруселях: Yeseva One (заголовки, капс с разрядкой
 и тонкими линиями по бокам) и Raleway (текст).
 
-Запуск: python3 -I make_novinki.py
-На выходе: output/0N_*.mp4, output/0N_*.jpg, output/preview.jpg, novinki_karusel.zip
+Запуск: python3 -I retouch.py && python3 -I make_novinki.py
+На выходе: output/01_oblozhka.mp4, output/0N_obraz_*.jpg, preview.jpg, novinki_karusel.zip
 """
 
-import math
 import subprocess
 import zipfile
 from pathlib import Path
@@ -37,7 +34,7 @@ WHITE = (255, 255, 255)
 PEACH = (240, 201, 168)
 BORDO = (122, 28, 30)
 
-TOTAL = 5
+TOTAL = 8
 
 
 def font(name, size):
@@ -50,6 +47,8 @@ F_NUM = font("YesevaOne-400.ttf", 150)
 F_KICK = font("Raleway-600.ttf", 28)
 F_TEXT = font("Raleway-400.ttf", 38)
 F_TEXT_B = font("Raleway-600.ttf", 38)
+F_NOTE = font("Raleway-400.ttf", 34)
+F_NUM_S = font("YesevaOne-400.ttf", 120)
 F_CTA = font("Raleway-600.ttf", 34)
 F_BADGE = font("Raleway-600.ttf", 40)
 F_ARROW = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
@@ -69,13 +68,6 @@ def ease(t):
 def ease_io(t):
     t = clamp(t)
     return t * t * (3 - 2 * t)
-
-
-def back(t):
-    """Выскакивание с лёгким перелётом (для бейджа)."""
-    t = clamp(t)
-    c = 1.9
-    return 1 + (c + 1) * (t - 1) ** 3 + c * (t - 1) ** 2
 
 
 def appear(t, start, dur=0.6):
@@ -160,20 +152,6 @@ def wrap(s, f, maxw):
     return lines + [cur]
 
 
-def cta(img, t, start, label="Листай"):
-    """«Листай →» внизу с покачивающейся стрелкой."""
-    a = appear(t, start) * out_fade(t)
-    if a <= 0:
-        return
-    wl = F_CTA.getlength(label)
-    wa = F_ARROW.getlength("→")
-    x = (W - wl - 16 - wa) / 2
-    y = H - 104
-    text(img, label, F_CTA, y, a, PEACH, x=x)
-    sway = 8 * math.sin((t - start) * 2 * math.pi / 1.2)
-    text(img, "→", F_ARROW, y + 2, a, PEACH, x=x + wl + 16 + sway)
-
-
 def dots(img, idx, alpha):
     """Индикатор слайда сверху справа: 01 / 05."""
     s = f"{idx:02d} / {TOTAL:02d}"
@@ -184,62 +162,40 @@ def kicker(img, s, alpha):
     text(img, s, F_KICK, 64, alpha * 0.85, WHITE, x=MARGIN, track=6)
 
 
-def kenburns(src, box, t, z0, z1, pan=(0, 0)):
-    """Кадр из области box=(cx, cy, h) исходника (доли): наезд z0→z1 и сдвиг."""
-    sw, sh = src.size
-    cx, cy, hfrac = box
-    k = ease_io(t / DUR)
-    z = z0 + (z1 - z0) * k
-    ch = sh * hfrac / z
-    cw = ch * W / H
-    x = sw * cx - cw / 2 + pan[0] * sw * k
-    y = sh * cy - ch / 2 + pan[1] * sh * k
-    x = min(max(0, x), sw - cw)
-    y = min(max(0, y), sh - ch)
-    return src.resize((W, H), Image.LANCZOS, box=(x, y, x + cw, y + ch)).convert("RGBA")
-
-
 # ---------- слайды ----------
 
-ITEMS = [
-    {
-        "slug": "02_verh",
-        "num": "01",
-        "kick": "ВЕРХ",
-        "name": "ВОДОЛАЗКА",
-        "sub": "без рукавов, чёрная",
-        "note": "Высокое горло и открытые плечи вытягивают силуэт. "
-                "База, которая работает и под жакет, и под кожанку, и сама по себе.",
-        "box": (0.58, 0.31, 0.42),  # доли исходника: центр x, центр y, высота
-        "zoom": (1.0, 1.12),
-        "pan": (0, 0.01),
-    },
-    {
-        "slug": "03_niz",
-        "num": "02",
-        "kick": "НИЗ",
-        "name": "КАРГО",
-        "sub": "в песочный камуфляж",
-        "note": "Низкая посадка, прямой свободный крой, объёмные карманы. "
-                "Песочный камуфляж мягче классического хаки и легче сочетается.",
-        "box": (0.6, 0.58, 0.46),
-        "zoom": (1.12, 1.0),
-        "pan": (0, 0.03),
-    },
-    {
-        "slug": "04_obuv",
-        "num": "03",
-        "kick": "ОБУВЬ",
-        "name": "БОТИНКИ",
-        "sub": "на тракторной подошве",
-        "note": "Массивная подошва уравновешивает объём брюк: "
-                "силуэт собран, а не «утонул» в широких штанинах.",
-        "box": (0.59, 0.89, 0.44),
-        "zoom": (1.0, 1.1),
-        "pan": (0, 0),
-        "floor": True,
-    },
+# образы по порядку: фото (src/retouched), название, подпись, комментарий стилиста
+# и необязательный масштаб фото (<1 — фото меньше, низ образа выше подписи)
+LOOKS = [
+    ("look_01", "КАРГО", "в тёмный камуфляж",
+     "Укороченный топ и низкая посадка открывают талию — силуэт сразу стройнее."),
+    ("look_02", "КОСТЮМ", "графитовый, с поясом",
+     "Широкий ремень поверх жакета делает костюм не офисным, а модным."),
+    ("look_03", "САФАРИ", "молочный жакет с баской",
+     "С чёрными брюками и лодочками — готовый образ на работу и встречи."),
+    ("look_04", "МИНИ", "бордовая, к тому же жакету",
+     "Грубые челси и мини превращают деловой жакет в дерзкий образ на вечер."),
+    ("look_05", "ТРИКОТАЖ", "пушистый комплект",
+     "Укороченный кардиган с золотыми пуговицами и длинная юбка — уютно и дорого."),
+    ("look_06", "ПЛАТЬЕ", "с меховым подолом",
+     "Лаконичный чёрный силуэт, весь акцент — на пушистом крае. Добавь жемчуг.", 0.74),
+    ("look_07", "КУРТКА", "с меховым воротником",
+     "Шоколад, фактурный трикотаж и белые джинсы — тёплая и светлая осень.", 0.9),
 ]
+
+
+def load(name):
+    p = ROOT / "src" / "retouched" / f"{name}.jpg"
+    return ImageOps.exif_transpose(Image.open(p)).convert("RGB")
+
+
+def crop45(src, top, cx=0.5):
+    """Кадр 4:5 на всю ширину исходника, начиная с доли top по высоте."""
+    sw, sh = src.size
+    cw = sw
+    ch = cw * H / W
+    y = min(max(0, sh * top), sh - ch)
+    return src.resize((W, H), Image.LANCZOS, box=(0, y, cw, y + ch)).convert("RGBA")
 
 
 def render(name, frame_fn):
@@ -265,196 +221,115 @@ def render(name, frame_fn):
     print("готово:", mp4.name)
 
 
-def cover_frame(src, grad):
-    lines = ["водолазка без рукавов", "карго в камуфляж", "грубые ботинки"]
+def badge():
+    r = 82
+    b = Image.new("RGBA", (2 * r + 8, 2 * r + 8), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(b)
+    bd.ellipse([4, 4, 2 * r + 4, 2 * r + 4], fill=(*BORDO, 255), outline=(*PEACH, 255), width=3)
+    tw = spaced_width("NEW", F_BADGE, 4)
+    bb = F_BADGE.getbbox("N")
+    draw_spaced(bd, "NEW", F_BADGE, r + 4 - tw / 2, r + 4 - (bb[1] + bb[3]) / 2, 4, (*WHITE, 255))
+    return b.rotate(-12, Image.BICUBIC, expand=True), r
+
+
+def static_cta(img, label):
+    wl = F_CTA.getlength(label)
+    wa = F_ARROW.getlength("→")
+    x = (W - wl - 16 - wa) / 2
+    y = H - 104
+    text(img, label, F_CTA, y, 1, PEACH, x=x)
+    text(img, "→", F_ARROW, y + 2, 1, PEACH, x=x + wl + 16)
+
+
+def cover_frame(src):
+    """Обложка: фото стоит на месте, всплывает только заголовок."""
+    lines = ["7 образов из примерочной", "от камуфляжа до меха"]
+    base = crop45(src, 0.0)
+    base.alpha_composite(gradient(solid=900, fadelen=520, top=True))
+    kicker(base, "ПРИМЕРОЧНАЯ · ОКТЯБРЬ", 1)
+    dots(base, 1, 1)
+    for i, ln in enumerate(lines):
+        text(base, ln, F_TEXT, 1030 + i * 54, 1)
+    b, r = badge()
+    base.alpha_composite(b, (int(W - MARGIN - r + 10 - b.width / 2), int(210 - b.height / 2)))
+    static_cta(base, "Листай")
 
     def frame(t):
-        # камера едет по образу: от ботинок к лицу
-        k = ease_io(t / DUR)
-        img = kenburns(src, (0.55, 0.62 - 0.26 * k, 0.70), 0, 1.0, 1.0)
-        img.alpha_composite(grad)
+        img = base.copy()
         fo = out_fade(t)
-        kicker(img, "ПРИМЕРОЧНАЯ · ОКТЯБРЬ", appear(t, 0.2) * fo)
-        dots(img, 1, appear(t, 0.2) * fo)
-
-        a = appear(t, 0.35, 0.8) * fo
-        title(img, "НОВИНКИ", F_TITLE, 760, a, appear(t, 0.9, 0.9), dy=40 * (1 - a))
-        a2 = appear(t, 0.6, 0.8) * fo
-        title(img, "НЕДЕЛИ", F_TITLE, 870, a2, 0, dy=40 * (1 - a2))
-
-        # пункты по одному, разделены персиковыми точками
-        for i, ln in enumerate(lines):
-            ai = appear(t, 1.5 + 0.35 * i, 0.5) * fo
-            text(img, ln, F_TEXT, 1010 + i * 54, ai, dx=-30 * (1 - ai))
-
-        # бейдж NEW выскакивает справа сверху и чуть покачивается
-        bs = back((t - 1.1) / 0.55) if t > 1.1 else 0
-        if bs > 0:
-            r = 82
-            badge = Image.new("RGBA", (2 * r + 8, 2 * r + 8), (0, 0, 0, 0))
-            bd = ImageDraw.Draw(badge)
-            bd.ellipse([4, 4, 2 * r + 4, 2 * r + 4], fill=(*BORDO, 255), outline=(*PEACH, 255), width=3)
-            tw = spaced_width("NEW", F_BADGE, 4)
-            bb = F_BADGE.getbbox("N")
-            draw_spaced(bd, "NEW", F_BADGE, r + 4 - tw / 2, r + 4 - (bb[1] + bb[3]) / 2, 4, (*WHITE, 255))
-            ang = -12 + 5 * math.sin(t * 2.4)
-            size = max(1, int(badge.width * bs))
-            b2 = badge.resize((size, size), Image.LANCZOS).rotate(ang, Image.BICUBIC, expand=True)
-            if fo < 1:
-                b2.putalpha(b2.getchannel("A").point(lambda v: int(v * fo)))
-            cx, cy = W - MARGIN - r + 10, 210
-            img.alpha_composite(b2, (int(cx - b2.width / 2), int(cy - b2.height / 2)))
-
-        cta(img, t, 2.8)
+        a = appear(t, 0.3, 1.0) * fo
+        title(img, "НОВИНКИ", F_TITLE, 780, a, appear(t, 0.9, 0.9) * fo, dy=60 * (1 - a))
+        a2 = appear(t, 0.55, 1.0) * fo
+        title(img, "НЕДЕЛИ", F_TITLE, 890, a2, 0, dy=60 * (1 - a2))
         return img
 
     return frame
 
 
-def with_floor(src, extra=0.35):
-    """Достраивает пол снизу (зеркалим и размываем нижнюю полосу),
-    чтобы обувь можно было поднять в верхнюю часть кадра над текстом."""
-    sw, sh = src.size
-    strip_h = int(sh * 0.06)
-    strip = src.crop((0, sh - strip_h, sw, sh))
-    ext_h = int(sh * extra)
-    ext = Image.new("RGB", (sw, ext_h))
-    y, flip = 0, True
-    while y < ext_h:
-        ext.paste(ImageOps.flip(strip) if flip else strip, (0, y))
-        y += strip_h
-        flip = not flip
-    ext = ext.filter(ImageFilter.GaussianBlur(30))
-    out = Image.new("RGB", (sw, sh + ext_h))
-    out.paste(src, (0, 0))
-    out.paste(ext, (0, sh))
-    # мягкий шов
-    seam = out.crop((0, sh - 60, sw, sh + 60)).filter(ImageFilter.GaussianBlur(14))
-    out.paste(seam, (0, sh - 60))
-    return out
+def full_look(src, scale=1.0):
+    """Образ целиком: фото по всей высоте по центру, по бокам — размытое
+    и затемнённое это же фото, чтобы ничего не обрезать."""
+    bg = ImageOps.fit(src, (W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(45)).convert("RGBA")
+    bg.alpha_composite(Image.new("RGBA", (W, H), (*OVERLAY, 120)))
+    fh = int(H * scale)
+    fg = src.resize((int(src.width * fh / src.height), fh), Image.LANCZOS).convert("RGBA")
+    x = (W - fg.width) // 2
+    y = 0 if scale == 1.0 else 110  # уменьшенное фото — с отступом под кикер
+    sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rectangle([x - 6, y, x + fg.width + 6, y + fh], fill=(0, 0, 0, 150))
+    bg.alpha_composite(sh.filter(ImageFilter.GaussianBlur(18)))
+    bg.alpha_composite(fg, (x, y))
+    return bg
 
 
-def item_frame(src, grad, it, idx):
-    note = wrap(it["note"], F_TEXT, W - 2 * MARGIN)
-    if it.get("floor"):
-        sh = src.height
-        src = with_floor(src)
-        cx, cy, hf = it["box"]
-        it = {**it, "box": (cx, cy * sh / src.height, hf * sh / src.height)}
+def look_slide(src, idx, num, name, sub, note, last, scale=1.0):
+    img = full_look(src, scale)
+    img.alpha_composite(gradient(solid=1090, fadelen=320, top=True))
+    kicker(img, "НОВИНКИ НЕДЕЛИ", 1)
+    dots(img, idx, 1)
 
-    def frame(t):
-        img = kenburns(src, it["box"], t, *it["zoom"], pan=it["pan"])
-        img.alpha_composite(grad)
-        fo = out_fade(t)
-        kicker(img, f"НОВИНКИ НЕДЕЛИ · {it['kick']}", appear(t, 0.1) * fo)
-        dots(img, idx, appear(t, 0.1) * fo)
-
-        # большой номер слева, название и подпись справа от него
-        base_y = 1350 - 140 - len(note) * 50 - 230
-        an = appear(t, 0.25, 0.7) * fo
-        text(img, it["num"], F_NUM, base_y - 30, an * 0.9, PEACH, x=MARGIN, dy=50 * (1 - an))
-        nx = MARGIN + F_NUM.getlength(it["num"]) + 36
-        a1 = appear(t, 0.5, 0.7) * fo
-        text(img, it["name"], F_TITLE_S, base_y + 18, a1, x=nx, track=10, dx=-40 * (1 - a1))
-        a2 = appear(t, 0.75, 0.7) * fo
-        text(img, it["sub"], F_TEXT_B, base_y + 110, a2, PEACH, x=nx, dx=-40 * (1 - a2))
-
-        # линия растёт слева направо
-        g = appear(t, 1.0, 0.9) * fo
-        if g > 0:
-            d = ImageDraw.Draw(img)
-            ly = base_y + 190
-            d.line([(MARGIN, ly), (MARGIN + (W - 2 * MARGIN) * g, ly)], fill=(*PEACH, int(255 * fo)), width=2)
-
-        # комментарий стилиста построчно
-        for i, ln in enumerate(note):
-            ai = appear(t, 1.3 + 0.18 * i, 0.5) * fo
-            text(img, ln, F_TEXT, base_y + 222 + i * 50, ai, x=MARGIN, dy=16 * (1 - ai))
-
-        cta(img, t, 2.4)
-        return img
-
-    return frame
-
-
-def final_frame(src):
-    # размытый затемнённый фон + чёткое фото образа целиком
-    bg = ImageOps.fit(src, (W, H), Image.LANCZOS, centering=(0.5, 0.45))
-    bg = bg.filter(ImageFilter.GaussianBlur(40)).convert("RGBA")
-    bg.alpha_composite(Image.new("RGBA", (W, H), (*OVERLAY, 170)))
-    ph_h = 820
-    ph = src.resize((int(src.width * ph_h / src.height), ph_h), Image.LANCZOS).convert("RGBA")
-    frame_img = Image.new("RGBA", (ph.width + 12, ph.height + 12), (*PEACH, 255))
-    frame_img.alpha_composite(ph, (6, 6))
-    shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    sx = (W - frame_img.width) // 2
-    sy = 200
-    ImageDraw.Draw(shadow).rectangle([sx + 14, sy + 20, sx + frame_img.width + 14, sy + frame_img.height + 20], fill=(0, 0, 0, 140))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(22))
-
-    parts = ["облегающий верх", "объём внизу", "грубая обувь"]
-
-    def frame(t):
-        img = bg.copy()
-        fo = out_fade(t)
-        kicker(img, "НОВИНКИ НЕДЕЛИ", appear(t, 0.1) * fo)
-        dots(img, TOTAL, appear(t, 0.1) * fo)
-
-        a = appear(t, 0.2, 0.8)
-        if a > 0:
-            s = shadow.copy()
-            s.putalpha(s.getchannel("A").point(lambda v: int(v * a)))
-            img.alpha_composite(s)
-            # фото «приезжает» снизу и слегка увеличивается
-            sc = 0.94 + 0.06 * a
-            fi = frame_img.resize((int(frame_img.width * sc), int(frame_img.height * sc)), Image.LANCZOS)
-            fi.putalpha(fi.getchannel("A").point(lambda v: int(v * a)))
-            img.alpha_composite(fi, (int((W - fi.width) / 2), int(sy + 60 * (1 - a) + (frame_img.height - fi.height) / 2)))
-
-        title(img, "ФОРМУЛА ОБРАЗА", F_TITLE_S, 104, appear(t, 0.4, 0.8) * fo, appear(t, 0.8, 0.9))
-
-        # формула одной строкой: части по очереди, между ними персиковый «+»
-        y = 1070
-        sep = "  +  "
-        full = sep.join(parts)
-        x = (W - F_TEXT_B.getlength(full)) / 2
-        for i, p in enumerate(parts):
-            ai = appear(t, 1.1 + 0.45 * i, 0.5) * fo
-            text(img, p, F_TEXT_B, y, ai, x=x, dy=20 * (1 - ai))
-            x += F_TEXT_B.getlength(p)
-            if i < len(parts) - 1:
-                ap = appear(t, 1.35 + 0.45 * i, 0.4) * fo
-                text(img, sep, F_TEXT_B, y, ap, PEACH, x=x)
-                x += F_TEXT_B.getlength(sep)
-
-        ac = appear(t, 2.8, 0.7) * fo
-        text(img, "Сохрани, чтобы повторить", F_CTA, H - 150, ac, PEACH)
-        return img
-
-    return frame
+    lines = wrap(note, F_NOTE, W - 2 * MARGIN)
+    note_y = H - 70 - len(lines) * 44 - (56 if last else 0)
+    sub_y = note_y - 64
+    name_y = sub_y - 84
+    text(img, num, F_NUM_S, name_y - 34, 0.9, PEACH, x=MARGIN)
+    nx = MARGIN + F_NUM_S.getlength(num) + 30
+    text(img, name, F_TITLE_S, name_y, 1, x=nx, track=10)
+    text(img, sub, F_TEXT_B, sub_y, 1, PEACH, x=nx)
+    for k, ln in enumerate(lines):
+        text(img, ln, F_NOTE, note_y + k * 44, 1, x=MARGIN)
+    if last:
+        text(img, "Сохрани, чтобы не потерять", F_CTA, H - 96, 1, PEACH)
+    return img.convert("RGB")
 
 
 def main():
     OUT.mkdir(exist_ok=True)
-    src = ImageOps.exif_transpose(Image.open(ROOT / "src" / "photo.jpg")).convert("RGB")
+    for old in OUT.glob("*"):
+        old.unlink()
 
-    render("01_oblozhka", cover_frame(src, gradient(solid=900, fadelen=520, top=True)))
-    for i, it in enumerate(ITEMS, start=2):
-        render(it["slug"], item_frame(src, gradient(solid=860, fadelen=480, top=True), it, i))
-    render("05_obraz", final_frame(src))
+    render("01_oblozhka", cover_frame(load("photo")))
+    names = ["01_oblozhka.mp4"]
+    for i, (fn, name, sub, note, *opt) in enumerate(LOOKS):
+        slug = f"{i + 2:02d}_obraz_{i + 1}"
+        img = look_slide(load(fn), i + 2, f"{i + 1:02d}", name, sub, note, i == len(LOOKS) - 1, *opt)
+        img.save(OUT / f"{slug}.jpg", quality=94)
+        names.append(f"{slug}.jpg")
+        print("готово:", slug)
 
-    names = ["01_oblozhka"] + [it["slug"] for it in ITEMS] + ["05_obraz"]
-    thumbs = [Image.open(OUT / f"{n}.jpg") for n in names]
-    tw, th = 360, 450
-    prev = Image.new("RGB", (tw * len(thumbs) + 12 * (len(thumbs) + 1), th + 24), (243, 235, 227))
+    thumbs = [Image.open(OUT / "01_oblozhka.jpg")] + [Image.open(OUT / n) for n in names[1:]]
+    tw, th = 270, 338
+    cols = 4
+    rows = (len(thumbs) + cols - 1) // cols
+    prev = Image.new("RGB", (cols * (tw + 12) + 12, rows * (th + 12) + 12), (243, 235, 227))
     for i, im in enumerate(thumbs):
-        prev.paste(im.resize((tw, th), Image.LANCZOS), (12 + i * (tw + 12), 12))
-    prev.save(OUT / "preview.jpg", quality=90)
+        prev.paste(im.resize((tw, th), Image.LANCZOS), (12 + (i % cols) * (tw + 12), 12 + (i // cols) * (th + 12)))
+    prev.save(ROOT / "preview.jpg", quality=90)
 
     with zipfile.ZipFile(ROOT / "novinki_karusel.zip", "w", zipfile.ZIP_STORED) as z:
         for n in names:
-            z.write(OUT / f"{n}.mp4", f"novinki_nedeli/{n}.mp4")
-            z.write(OUT / f"{n}.jpg", f"novinki_nedeli/jpg/{n}.jpg")
+            z.write(OUT / n, f"novinki_nedeli/{n}")
+        z.write(OUT / "01_oblozhka.jpg", "novinki_nedeli/01_oblozhka_static.jpg")
     print("архив: novinki_karusel.zip")
 
 
