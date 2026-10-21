@@ -4,12 +4,12 @@
 
   01 обложка — видео (MP4, H.264, 30 к/с): фото стоит на месте,
      всплывает только заголовок «НОВИНКИ НЕДЕЛИ»;
-  02–08 — статичные JPG: фото образа, номер, название, подпись
-     и короткий комментарий стилиста.
+  02–08 — статичные JPG: фото образа, «ОБРАЗ 0N», название, одна фраза
+     и строка «АРТИКУЛЫ В ДИРЕКТ»; на последнем слайде — крупный призыв.
 
 Фото берутся из src/retouched (сначала запустить retouch.py — ретушь кожи лица).
-Шрифты как на прошлых каруселях: Yeseva One (заголовки, капс с разрядкой
-и тонкими линиями по бокам) и Raleway (текст).
+Стиль «Минимал» (вариант 4 из variants.py): Tenor Sans — капс с разрядкой,
+Jost — текст.
 
 Запуск: python3 -I retouch.py && python3 -I make_novinki.py
 На выходе: output/01_oblozhka.mp4, output/0N_obraz_*.jpg, preview.jpg, novinki_karusel.zip
@@ -34,23 +34,31 @@ WHITE = (255, 255, 255)
 PEACH = (240, 201, 168)
 BORDO = (122, 28, 30)
 
+# цвета надписей: основной и акцентный (подбор — в colors.py)
+MAIN = WHITE
+ACCENT = PEACH
+
 
 
 def font(name, size):
     return ImageFont.truetype(str(FONTS / name), size)
 
 
+# стиль «Минимал»: Tenor Sans (капс с разрядкой) + Jost (текст)
+F_CAPS = font("TenorSans-400.ttf", 64)
+F_SMALL = font("TenorSans-400.ttf", 26)
+F_BODY = font("Jost-400.ttf", 36)
+F_ASK = font("TenorSans-400.ttf", 40)
+
+# прежний стиль (Yeseva One + Raleway) — нужен для листа вариантов variants.py
 F_TITLE = font("YesevaOne-400.ttf", 92)
 F_TITLE_S = font("YesevaOne-400.ttf", 66)
-F_NUM = font("YesevaOne-400.ttf", 150)
-F_KICK = font("Raleway-600.ttf", 28)
+F_NUM_S = font("YesevaOne-400.ttf", 120)
 F_TEXT = font("Raleway-400.ttf", 38)
 F_TEXT_B = font("Raleway-600.ttf", 38)
 F_NOTE = font("Raleway-400.ttf", 34)
-F_NUM_S = font("YesevaOne-400.ttf", 120)
-F_CTA = font("Raleway-600.ttf", 34)
-F_BADGE = font("Raleway-600.ttf", 40)
-F_ARROW = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
+
+ASK = "АРТИКУЛЫ В ДИРЕКТ · «ХОЧУ»"
 
 
 # ---------- анимационные помощники ----------
@@ -123,9 +131,10 @@ def title(img, text, f, y, alpha, grow, track=14, dy=0):
     img.alpha_composite(layer)
 
 
-def text(img, s, f, y, alpha, color=WHITE, x=None, track=0, dx=0, dy=0):
+def text(img, s, f, y, alpha, color=None, x=None, track=0, dx=0, dy=0):
     if alpha <= 0:
         return
+    color = color or MAIN
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     w = spaced_width(s, f, track) if track else f.getlength(s)
@@ -151,30 +160,23 @@ def wrap(s, f, maxw):
 
 # ---------- слайды ----------
 
-# образы по порядку: фото (src/retouched), название, подпись, комментарий стилиста
+# образы по порядку: фото (src/retouched), название капсом, одна фраза
 # и необязательный масштаб фото (<1 — фото меньше, низ образа выше подписи)
 LOOKS = [
-    ("look_01", "КАРГО", "в тёмный камуфляж",
-     "Утилитарный кэжуал не сдаёт позиций: низкая посадка, объёмные карманы "
-     "и камуфляж — самый стильный антигламур осени."),
-    ("look_02", "КОСТЮМ", "графитовый, с поясом",
-     "Сезон сильных плеч и подчёркнутой талии: широкий ремень поверх жакета "
-     "превращает классику в эффектный выход."),
-    ("look_03", "САФАРИ", "молочный жакет с баской",
-     "Накладные карманы, баска и пояс в молочном цвете. С чёрными брюками "
-     "и лодочками — графичный контраст без лишних слов."),
-    ("look_04", "МИНИ", "бордовая, к тому же жакету",
-     "Строгий жакет, мини и грубые челси: смешение стилей — главный приём "
-     "сезона. А бордо — новый чёрный."),
-    ("look_05", "ТРИКОТАЖ", "пушистый комплект",
-     "Осень тактильных фактур: пушистый кардиган с золотыми пуговицами "
-     "и длинная юбка в тон — уют, который выглядит дорого."),
-    ("look_06", "ПЛАТЬЕ", "с меховым подолом",
-     "Мех ушёл в детали: пушистый подол на лаконичном мини — тот самый "
-     "dark romance. Добавь жемчуг.", 0.74),
-    ("look_07", "КУРТКА", "с меховым воротником",
-     "Шоколадный — база сезона, а объёмный мех на воротнике и укороченная "
-     "длина делают куртку главным героем образа.", 0.9),
+    ("look_01", "КАРГО-КАМУФЛЯЖ",
+     "Утилитарный кэжуал — самый стильный антигламур осени."),
+    ("look_02", "КОСТЮМ С ПОЯСОМ",
+     "Сильные плечи и подчёркнутая талия — классика на выход."),
+    ("look_03", "ЖАКЕТ САФАРИ",
+     "Молочный, с баской и поясом — графичный контраст с чёрным."),
+    ("look_04", "МИНИ К ЖАКЕТУ",
+     "Смешение стилей — главный приём сезона. Бордо — новый чёрный."),
+    ("look_05", "ТРИКОТАЖ",
+     "Осень тактильных фактур: уют, который выглядит дорого."),
+    ("look_06", "ПЛАТЬЕ С МЕХОМ",
+     "Мех ушёл в детали — тот самый dark romance.", 0.74),
+    ("look_07", "КУРТКА С МЕХОМ",
+     "Шоколадный — база сезона, укороченная длина — главный акцент.", 0.9),
 ]
 
 
@@ -215,44 +217,30 @@ def render(name, frame_fn):
     print("готово:", mp4.name)
 
 
-def badge():
-    r = 82
-    b = Image.new("RGBA", (2 * r + 8, 2 * r + 8), (0, 0, 0, 0))
-    bd = ImageDraw.Draw(b)
-    bd.ellipse([4, 4, 2 * r + 4, 2 * r + 4], fill=(*BORDO, 255), outline=(*PEACH, 255), width=3)
-    tw = spaced_width("NEW", F_BADGE, 4)
-    bb = F_BADGE.getbbox("N")
-    draw_spaced(bd, "NEW", F_BADGE, r + 4 - tw / 2, r + 4 - (bb[1] + bb[3]) / 2, 4, (*WHITE, 255))
-    return b.rotate(-12, Image.BICUBIC, expand=True), r
-
-
-def static_cta(img, label):
-    wl = F_CTA.getlength(label)
-    wa = F_ARROW.getlength("→")
-    x = (W - wl - 16 - wa) / 2
-    y = H - 104
-    text(img, label, F_CTA, y, 1, PEACH, x=x)
-    text(img, "→", F_ARROW, y + 2, 1, PEACH, x=x + wl + 16)
+def fit_caps(s, f, track, maxw):
+    """Капс с разрядкой: уменьшаем кегль, если строка не влезает."""
+    size = f.size
+    while spaced_width(s, f, track) > maxw and size > 30:
+        size -= 2
+        f = font(Path(f.path).name, size)
+    return f
 
 
 def cover_frame(src):
     """Обложка: фото стоит на месте, всплывает только заголовок."""
-    lines = ["7 образов из примерочной", "от камуфляжа до меха"]
     base = crop45(src, 0.0)
     base.alpha_composite(gradient(solid=900, fadelen=520))
-    for i, ln in enumerate(lines):
-        text(base, ln, F_TEXT, 1030 + i * 54, 1)
-    b, r = badge()
-    base.alpha_composite(b, (int(W - MARGIN - r + 10 - b.width / 2), int(210 - b.height / 2)))
-    static_cta(base, "Листай")
+    d = ImageDraw.Draw(base)
+    d.line([(W / 2 - 40, 1085), (W / 2 + 40, 1085)], fill=(*ACCENT, 255), width=2)
+    text(base, "7 ОБРАЗОВ", F_SMALL, 1115, 1, ACCENT, track=10)
 
     def frame(t):
         img = base.copy()
         fo = out_fade(t)
         a = appear(t, 0.3, 1.0) * fo
-        title(img, "НОВИНКИ", F_TITLE, 780, a, appear(t, 0.9, 0.9) * fo, dy=60 * (1 - a))
+        text(img, "НОВИНКИ", F_CAPS, 880, a, track=22, dy=60 * (1 - a))
         a2 = appear(t, 0.55, 1.0) * fo
-        title(img, "НЕДЕЛИ", F_TITLE, 890, a2, 0, dy=60 * (1 - a2))
+        text(img, "НЕДЕЛИ", F_CAPS, 970, a2, track=22, dy=60 * (1 - a2))
         return img
 
     return frame
@@ -274,22 +262,27 @@ def full_look(src, scale=1.0):
     return bg
 
 
-def look_slide(src, num, name, sub, note, last, scale=1.0):
+def look_slide(src, num, name, phrase, last, scale=1.0):
     img = full_look(src, scale)
-    img.alpha_composite(gradient(solid=1090, fadelen=320))
+    lines = wrap(phrase, F_BODY, W - 2 * MARGIN)
+    ask_y = H - 78 - (70 if last else 0)
+    body_y = ask_y - 46 - len(lines) * 46
+    name_y = body_y - 100
+    label_y = name_y - 40
+    img.alpha_composite(gradient(solid=label_y + 120, fadelen=320))
 
-    lines = wrap(note, F_NOTE, W - 2 * MARGIN)
-    note_y = H - 70 - len(lines) * 44 - (56 if last else 0)
-    sub_y = note_y - 64
-    name_y = sub_y - 84
-    text(img, num, F_NUM_S, name_y - 34, 0.9, PEACH, x=MARGIN)
-    nx = MARGIN + F_NUM_S.getlength(num) + 30
-    text(img, name, F_TITLE_S, name_y, 1, x=nx, track=10)
-    text(img, sub, F_TEXT_B, sub_y, 1, PEACH, x=nx)
+    text(img, f"ОБРАЗ {num}", F_SMALL, label_y, 1, ACCENT, x=MARGIN, track=10)
+    text(img, name, fit_caps(name, F_CAPS, 12, W - 2 * MARGIN), name_y, 1, x=MARGIN, track=12)
     for k, ln in enumerate(lines):
-        text(img, ln, F_NOTE, note_y + k * 44, 1, x=MARGIN)
+        text(img, ln, F_BODY, body_y + k * 46, 1, x=MARGIN)
     if last:
-        text(img, "Сохрани, чтобы не потерять", F_CTA, H - 96, 1, PEACH)
+        # крупный призыв на последнем слайде
+        d = ImageDraw.Draw(img)
+        d.line([(MARGIN, ask_y - 6), (MARGIN + 80, ask_y - 6)], fill=(*ACCENT, 255), width=2)
+        text(img, "ХОЧЕШЬ АРТИКУЛЫ?", F_ASK, ask_y + 20, 1, x=MARGIN, track=8)
+        text(img, "ПИШИ «ХОЧУ» В ДИРЕКТ", F_ASK, ask_y + 76, 1, ACCENT, x=MARGIN, track=8)
+    else:
+        text(img, ASK, F_SMALL, ask_y + 6, 1, ACCENT, x=MARGIN, track=8)
     return img.convert("RGB")
 
 
@@ -300,9 +293,9 @@ def main():
 
     render("01_oblozhka", cover_frame(load("photo")))
     names = ["01_oblozhka.mp4"]
-    for i, (fn, name, sub, note, *opt) in enumerate(LOOKS):
+    for i, (fn, name, phrase, *opt) in enumerate(LOOKS):
         slug = f"{i + 2:02d}_obraz_{i + 1}"
-        img = look_slide(load(fn), f"{i + 1:02d}", name, sub, note, i == len(LOOKS) - 1, *opt)
+        img = look_slide(load(fn), f"{i + 1:02d}", name, phrase, i == len(LOOKS) - 1, *opt)
         img.save(OUT / f"{slug}.jpg", quality=94)
         names.append(f"{slug}.jpg")
         print("готово:", slug)
