@@ -34,7 +34,6 @@ WHITE = (255, 255, 255)
 PEACH = (240, 201, 168)
 BORDO = (122, 28, 30)
 
-TOTAL = 8
 
 
 def font(name, size):
@@ -81,15 +80,13 @@ def out_fade(t):
 
 # ---------- рисование ----------
 
-def gradient(solid=880, fadelen=460, top=False):
-    """Тёмная подложка снизу (и при top=True — лёгкая сверху под кикер)."""
+def gradient(solid=880, fadelen=460):
+    """Тёмная подложка снизу."""
     mask = Image.new("L", (1, H), 0)
     px = mask.load()
     for y in range(H):
         a = 1.0 if y >= solid else max(0.0, 1 - (solid - y) / fadelen)
         v = 225 * a ** 1.4
-        if top:
-            v = max(v, 150 * max(0.0, 1 - y / 260) ** 1.6)
         px[0, y] = int(v)
     layer = Image.new("RGBA", (W, H), (*OVERLAY, 255))
     layer.putalpha(mask.resize((W, H)))
@@ -152,35 +149,32 @@ def wrap(s, f, maxw):
     return lines + [cur]
 
 
-def dots(img, idx, alpha):
-    """Индикатор слайда сверху справа: 01 / 05."""
-    s = f"{idx:02d} / {TOTAL:02d}"
-    text(img, s, F_KICK, 64, alpha * 0.85, WHITE, x=W - MARGIN - spaced_width(s, F_KICK, 4), track=4)
-
-
-def kicker(img, s, alpha):
-    text(img, s, F_KICK, 64, alpha * 0.85, WHITE, x=MARGIN, track=6)
-
-
 # ---------- слайды ----------
 
 # образы по порядку: фото (src/retouched), название, подпись, комментарий стилиста
 # и необязательный масштаб фото (<1 — фото меньше, низ образа выше подписи)
 LOOKS = [
     ("look_01", "КАРГО", "в тёмный камуфляж",
-     "Укороченный топ и низкая посадка открывают талию — силуэт сразу стройнее."),
+     "Утилитарный кэжуал не сдаёт позиций: низкая посадка, объёмные карманы "
+     "и камуфляж — самый стильный антигламур осени."),
     ("look_02", "КОСТЮМ", "графитовый, с поясом",
-     "Широкий ремень поверх жакета делает костюм не офисным, а модным."),
+     "Сезон сильных плеч и подчёркнутой талии: широкий ремень поверх жакета "
+     "превращает классику в эффектный выход."),
     ("look_03", "САФАРИ", "молочный жакет с баской",
-     "С чёрными брюками и лодочками — готовый образ на работу и встречи."),
+     "Накладные карманы, баска и пояс в молочном цвете. С чёрными брюками "
+     "и лодочками — графичный контраст без лишних слов."),
     ("look_04", "МИНИ", "бордовая, к тому же жакету",
-     "Грубые челси и мини превращают деловой жакет в дерзкий образ на вечер."),
+     "Строгий жакет, мини и грубые челси: смешение стилей — главный приём "
+     "сезона. А бордо — новый чёрный."),
     ("look_05", "ТРИКОТАЖ", "пушистый комплект",
-     "Укороченный кардиган с золотыми пуговицами и длинная юбка — уютно и дорого."),
+     "Осень тактильных фактур: пушистый кардиган с золотыми пуговицами "
+     "и длинная юбка в тон — уют, который выглядит дорого."),
     ("look_06", "ПЛАТЬЕ", "с меховым подолом",
-     "Лаконичный чёрный силуэт, весь акцент — на пушистом крае. Добавь жемчуг.", 0.74),
+     "Мех ушёл в детали: пушистый подол на лаконичном мини — тот самый "
+     "dark romance. Добавь жемчуг.", 0.74),
     ("look_07", "КУРТКА", "с меховым воротником",
-     "Шоколад, фактурный трикотаж и белые джинсы — тёплая и светлая осень.", 0.9),
+     "Шоколадный — база сезона, а объёмный мех на воротнике и укороченная "
+     "длина делают куртку главным героем образа.", 0.9),
 ]
 
 
@@ -245,9 +239,7 @@ def cover_frame(src):
     """Обложка: фото стоит на месте, всплывает только заголовок."""
     lines = ["7 образов из примерочной", "от камуфляжа до меха"]
     base = crop45(src, 0.0)
-    base.alpha_composite(gradient(solid=900, fadelen=520, top=True))
-    kicker(base, "ПРИМЕРОЧНАЯ · ОКТЯБРЬ", 1)
-    dots(base, 1, 1)
+    base.alpha_composite(gradient(solid=900, fadelen=520))
     for i, ln in enumerate(lines):
         text(base, ln, F_TEXT, 1030 + i * 54, 1)
     b, r = badge()
@@ -274,7 +266,7 @@ def full_look(src, scale=1.0):
     fh = int(H * scale)
     fg = src.resize((int(src.width * fh / src.height), fh), Image.LANCZOS).convert("RGBA")
     x = (W - fg.width) // 2
-    y = 0 if scale == 1.0 else 110  # уменьшенное фото — с отступом под кикер
+    y = 0 if scale == 1.0 else 60  # уменьшенное фото — с небольшим отступом сверху
     sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     ImageDraw.Draw(sh).rectangle([x - 6, y, x + fg.width + 6, y + fh], fill=(0, 0, 0, 150))
     bg.alpha_composite(sh.filter(ImageFilter.GaussianBlur(18)))
@@ -282,11 +274,9 @@ def full_look(src, scale=1.0):
     return bg
 
 
-def look_slide(src, idx, num, name, sub, note, last, scale=1.0):
+def look_slide(src, num, name, sub, note, last, scale=1.0):
     img = full_look(src, scale)
-    img.alpha_composite(gradient(solid=1090, fadelen=320, top=True))
-    kicker(img, "НОВИНКИ НЕДЕЛИ", 1)
-    dots(img, idx, 1)
+    img.alpha_composite(gradient(solid=1090, fadelen=320))
 
     lines = wrap(note, F_NOTE, W - 2 * MARGIN)
     note_y = H - 70 - len(lines) * 44 - (56 if last else 0)
@@ -312,7 +302,7 @@ def main():
     names = ["01_oblozhka.mp4"]
     for i, (fn, name, sub, note, *opt) in enumerate(LOOKS):
         slug = f"{i + 2:02d}_obraz_{i + 1}"
-        img = look_slide(load(fn), i + 2, f"{i + 1:02d}", name, sub, note, i == len(LOOKS) - 1, *opt)
+        img = look_slide(load(fn), f"{i + 1:02d}", name, sub, note, i == len(LOOKS) - 1, *opt)
         img.save(OUT / f"{slug}.jpg", quality=94)
         names.append(f"{slug}.jpg")
         print("готово:", slug)
